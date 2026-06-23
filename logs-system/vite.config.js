@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      base: import.meta.env.VITE_BASE_PATH || "/Transact-logs-system",
     },
   },
 })
