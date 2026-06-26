@@ -8,8 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "pages:dev": "npm run build && wrangler pages dev dist",
-    "pages:deploy": "npm run build && wrangler pages deploy dist"
+    "pages:dev": "npm run build && npx wrangler pages dev dist",
+    "pages:deploy": "npm run build && npx wrangler pages deploy dist"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
