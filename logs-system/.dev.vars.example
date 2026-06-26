@@ -1,0 +1,4 @@
+# Cloudflare Pages Environment Variables
+# Copy this to .dev.vars for local development
+
+VITE_API_URL=http://127.0.0.1:8000/api
