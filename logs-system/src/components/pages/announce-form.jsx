@@ -2,15 +2,7 @@
 
 import { useState } from "react";
 import {
-  Calendar,
   Upload,
-  Bold,
-  Italic,
-  Underline,
-  List,
-  ListOrdered,
-  Link,
-  ImageIcon,
   Plus,
   NotepadTextDashed,
 } from "lucide-react";
@@ -31,7 +23,6 @@ import { AppSidebar } from '@/components/layout/Asidebar';
 
 export default function Announcement() {
   const [image, setImage] = useState(null);
-  const [publishDate, setPublishDate] = useState("");
 
   const handleImageChange = (e) => {
     if (e.target.files[0]) {
@@ -78,27 +69,11 @@ export default function Announcement() {
                         </SelectTrigger>
 
                         <SelectContent>
-                          <SelectItem value="all">All Students</SelectItem>
-                          <SelectItem value="faculty">Faculty</SelectItem>
-                          <SelectItem value="staff">Staff</SelectItem>
+                          <SelectItem value="All Students">All Students</SelectItem>
+                          <SelectItem value="Staff & Faculty">Staff & Faculty</SelectItem>
+                          <SelectItem value="Entire Campus">Entire Campus</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-
-                    {/* Date */}
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        Publish Date
-                      </label>
-
-                      <input
-                        type="date"
-                        value={publishDate}
-                        onChange={(e) => setPublishDate(e.target.value)}
-                        placeholder="mm/dd/yyyy"
-                        className="w-55 h-8 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
                     </div>
                   </div>
 
@@ -151,42 +126,8 @@ export default function Announcement() {
                     Content
                   </label>
 
-                  <div className="border rounded-lg overflow-hidden bg-white">
-                    {/* Toolbar */}
-                    <div className="border-b px-3 py-2 flex items-center gap-3 text-gray-600">
-                      <button className="hover:text-black">
-                        <Bold className="w-4 h-4" />
-                      </button>
-
-                      <button className="hover:text-black">
-                        <Italic className="w-4 h-4" />
-                      </button>
-
-                      <button className="hover:text-black">
-                        <Underline className="w-4 h-4" />
-                      </button>
-
-                      <Separator orientation="vertical" className="h-5" />
-
-                      <button className="hover:text-black">
-                        <List className="w-4 h-4" />
-                      </button>
-
-                      <button className="hover:text-black">
-                        <ListOrdered className="w-4 h-4" />
-                      </button>
-
-                      <Separator orientation="vertical" className="h-5" />
-
-                      <button className="hover:text-black">
-                        <Link className="w-4 h-4" />
-                      </button>
-
-                      <button className="hover:text-black">
-                        <ImageIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-
+                  
+                    <div className="flex gap-2 mb-2">    
                     {/* Editor */}
                     <textarea
                       placeholder="Write announcement details here..."
