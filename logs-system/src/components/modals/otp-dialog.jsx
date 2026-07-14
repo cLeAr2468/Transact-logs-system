@@ -19,7 +19,7 @@ import { useState } from "react";
 export default function VerifyOtpDialog({
   open,
   onOpenChange,
-  email = "reyesjerald638@gmail.com",
+  email = "resend.com",
   onBack,
   onVerify,
   onResend,
