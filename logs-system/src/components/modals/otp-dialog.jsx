@@ -13,7 +13,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 
-import { ShieldCheck, Clock3, CheckCircle2, ArrowLeft } from "lucide-react";
+import { ShieldCheck, Clock3, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 export default function VerifyOtpDialog({
@@ -27,6 +27,7 @@ export default function VerifyOtpDialog({
   setOtp,
   loading = false,
 }) {
+  const [resendLoading, setResendLoading] = useState(false);
 
   const handleVerify = () => {
     if (onVerify) {
@@ -42,9 +43,16 @@ export default function VerifyOtpDialog({
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (onResend) {
-      onResend();
+      setResendLoading(true);
+      try {
+        await onResend();
+      } catch (error) {
+        console.error("Error resending OTP:", error);
+      } finally {
+        setResendLoading(false);
+      }
     }
   };
 
@@ -150,10 +158,17 @@ export default function VerifyOtpDialog({
             Didn't receive the code?{" "}
             <button
               onClick={handleResend}
-              disabled={loading}
-              className="font-semibold text-green-700 hover:underline disabled:opacity-50"
+              disabled={loading || resendLoading}
+              className="font-semibold text-green-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
             >
-              Resend Code
+              {resendLoading ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Resend Code"
+              )}
             </button>
           </div>
 
