@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -9,23 +9,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { updateStaff } from '../../api/staffApi';
 
-export default function EditStaffDialog({ isOpen, onClose, staff }) {
+export default function EditStaffDialog({ isOpen, onClose, staff, onStaffUpdated }) {
   const [formData, setFormData] = useState({
-    name: '',
+    staff_id: '',
+    fname: '',
+    mname: '',
+    lname: '',
     email: '',
-    role: 'Staff',
     status: 'Active',
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (staff) {
       setFormData({
-        name: staff.name || '',
+        staff_id: staff.staff_id || '',
+        fname: staff.fname || '',
+        mname: staff.mname || '',
+        lname: staff.lname || '',
         email: staff.email || '',
-        role: staff.role || 'Staff',
         status: staff.status || 'Active',
       });
+      setError(""); // Clear error when new staff is selected
     }
   }, [staff]);
 
@@ -35,6 +43,7 @@ export default function EditStaffDialog({ isOpen, onClose, staff }) {
       ...prev,
       [name]: value
     }));
+    setError(""); // Clear error when user types
   };
 
   const handleSelectChange = (name, value) => {
@@ -42,13 +51,58 @@ export default function EditStaffDialog({ isOpen, onClose, staff }) {
       ...prev,
       [name]: value
     }));
+    setError(""); // Clear error when selection changes
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log('Updated staff data:', formData);
-    onClose();
+
+    // Validate required fields
+    if (!formData.staff_id) {
+      setError("Staff ID is required");
+      return;
+    }
+    if (!formData.fname) {
+      setError("First name is required");
+      return;
+    }
+    if (!formData.lname) {
+      setError("Last name is required");
+      return;
+    }
+    if (!formData.email) {
+      setError("Email is required");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await updateStaff(staff.id, formData);
+      console.log("✅ Staff updated:", response);
+      
+      alert(response.message || "Staff member updated successfully!");
+      
+      // Notify parent component to refresh data
+      if (onStaffUpdated) {
+        onStaffUpdated();
+      }
+      
+      onClose();
+    } catch (err) {
+      console.error("❌ Error updating staff:", err);
+      
+      // Handle validation errors
+      if (err.errors) {
+        const firstError = Object.values(err.errors)[0];
+        setError(Array.isArray(firstError) ? firstError[0] : firstError);
+      } else {
+        setError(err.message || "Failed to update staff member");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -78,20 +132,68 @@ export default function EditStaffDialog({ isOpen, onClose, staff }) {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            
-            {/* Name */}
+            {/* Error Message */}
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                <p className="text-sm text-red-600 font-medium">{error}</p>
+              </div>
+            )}
+
+             {/* Staff ID */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
+                Staff ID
               </label>
               <Input
                 type="text"
-                name="name"
-                value={formData.name}
+                name="staff_id"
+                value={formData.staff_id}
                 onChange={handleInputChange}
-                placeholder="Enter full name"
+                placeholder="Enter staff ID"
               />
             </div>
+            {/* First Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                First Name
+              </label>
+              <Input
+                type="text"
+                name="fname"
+                value={formData.fname}
+                onChange={handleInputChange}
+                placeholder="Enter first name"
+              />
+            </div>
+             {/* Middle Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Middle Name
+              </label>
+              <Input
+                type="text"
+                name="mname"
+                value={formData.mname}
+                onChange={handleInputChange}
+                placeholder="Enter middle name"
+              />
+            </div>
+
+ {/* Last Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Last Name
+              </label>
+              <Input
+                type="text"
+                name="lname"
+                value={formData.lname}
+                onChange={handleInputChange}
+                placeholder="Enter last name"
+              />
+            </div>
+
+
 
             {/* Email */}
             <div>
@@ -107,21 +209,7 @@ export default function EditStaffDialog({ isOpen, onClose, staff }) {
               />
             </div>
 
-            {/* Role */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Role
-              </label>
-              <Select value={formData.role} onValueChange={(value) => handleSelectChange('role', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Staff">Staff</SelectItem>
-                  <SelectItem value="Administrator">Administrator</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+           
 
             {/* Status */}
             <div>
@@ -146,14 +234,23 @@ export default function EditStaffDialog({ isOpen, onClose, staff }) {
                 variant="outline"
                 className="flex-1"
                 onClick={onClose}
+                disabled={loading}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 className="flex-1 bg-[#15592F] hover:bg-[#124b28]"
+                disabled={loading}
               >
-                Save Changes
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </Button>
             </div>
           </form>

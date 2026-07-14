@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,88 +21,239 @@ import {
   ArrowRightLeft,
   Hourglass,
   CheckCircle2,
+  Check,
+  X,
+  Loader2,
 } from "lucide-react";
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Transaction = () => {
-  const transactions = [
-    {
-      date: "Jun 30, 2025",
-      student: "Criscel Jane",
-      purpose: "Good Moral Certificate",
-      address: "Brgy. Quezon, San Jorge",
-      course: "BSA",
-      status: "Completed",
-    },
-    {
-      date: "Jun 30, 2025",
-      student: "Lean Cabarles",
-      purpose: "TES Scholarship",
-      address: "Brgy. Erenas, San Jorge",
-      course: "BEED",
-      status: "Pending",
-    },
-    {
-      date: "May 1, 2026",
-      student: "Kyla Aliman",
-      purpose: "Student Clearance",
-      address: "Gandara Samar",
-      course: "BSIT",
-      status: "Processing",
-    },
-    {
-      date: "Jun 28, 2025",
-      student: "Renato Bordallo",
-      purpose: "ID Validation",
-      address: "Pagsanghan Samar",
-      course: "BSCRIM",
-      status: "Processing",
-    },
-    {
-      date: "Jun 30, 2025",
-      student: "Kathy Acera",
-      purpose: "TES Scholarship",
-      address: "Brgy. Aurora, San Jorge",
-      course: "BTLED",
-      status: "Pending",
-    },
-    {
-      date: "May 12, 2026",
-      student: "Miguel Manozo",
-      purpose: "Request ID Form",
-      address: "Brgy. Catores, Gandara",
-      course: "BSF",
-      status: "Completed",
-    },
-    {
-      date: "Jun 30, 2025",
-      student: "Edriel Gabuya",
-      purpose: "Affidavit of Loss",
-      address: "Brgy. Blanca, San Jorge",
-      course: "BSABE",
-      status: "Completed",
-    },
-  ];
+  const navigate = useNavigate();
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null); // Track which button is loading
 
   // ✅ FILTER & SEARCH STATE
   const [filter, setFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Fetch transactions from backend
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      
+      if (!token) {
+        toast.error('You are not logged in. Please login first.');
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/appointments`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.status === 401) {
+        toast.error('Session expired. Please login again.');
+        navigate('/login');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setTransactions(data.transactions || []);
+      } else {
+        toast.error(data.message || 'Failed to fetch transactions');
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
+      toast.error('Failed to load transactions. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle status update
+  const handleStatusUpdate = async (transactionId, newStatus) => {
+    setActionLoading(transactionId);
+    try {
+      const token = localStorage.getItem('admin_token');
+      
+      if (!token) {
+        toast.error('You are not logged in. Please login first.');
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/appointments/${transactionId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.message || `Transaction ${newStatus} successfully!`);
+        // Refresh transactions list
+        fetchTransactions();
+      } else {
+        toast.error(data.message || 'Failed to update transaction status');
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error('Failed to update transaction. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Handle approve
+  const handleApprove = (transactionId) => {
+    toast.warning(
+      <div>
+        <p className="font-semibold">Approve this appointment?</p>
+        <p className="text-sm">The student will be notified via email.</p>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => {
+              confirmApprove(transactionId);
+              toast.dismiss();
+            }}
+            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+          >
+            Approve
+          </button>
+          <button
+            onClick={() => toast.dismiss()}
+            className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>,
+      { duration: 10000 }
+    );
+  };
+
+  const confirmApprove = (transactionId) => {
+    handleStatusUpdate(transactionId, 'approved');
+  };
+
+  // Handle reject
+  const handleReject = (transactionId) => {
+    toast.warning(
+      <div>
+        <p className="font-semibold">Reject this appointment?</p>
+        <p className="text-sm">The student will be notified via email.</p>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => {
+              confirmReject(transactionId);
+              toast.dismiss();
+            }}
+            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+          >
+            Reject
+          </button>
+          <button
+            onClick={() => toast.dismiss()}
+            className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>,
+      { duration: 10000 }
+    );
+  };
+
+  const confirmReject = (transactionId) => {
+    handleStatusUpdate(transactionId, 'rejected');
+  };
+
+  // Handle complete
+  const handleComplete = (transactionId) => {
+    toast.warning(
+      <div>
+        <p className="font-semibold">Mark as completed?</p>
+        <p className="text-sm">The student will be notified via email.</p>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => {
+              confirmComplete(transactionId);
+              toast.dismiss();
+            }}
+            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+          >
+            Complete
+          </button>
+          <button
+            onClick={() => toast.dismiss()}
+            className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>,
+      { duration: 10000 }
+    );
+  };
+
+  const confirmComplete = (transactionId) => {
+    handleStatusUpdate(transactionId, 'completed');
+  };
+
+
+  // Format date properly
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   // ✅ COMBINED FILTER & SEARCH LOGIC
   const filteredTransactions = transactions.filter((item) => {
+    // Map backend status to frontend display status
+    const displayStatus = item.status === 'approved' ? 'Approved' : 
+                         item.status === 'pending' ? 'Pending' :
+                         item.status === 'completed' ? 'Completed' :
+                         item.status === 'rejected' ? 'Rejected' :
+                         item.status === 'cancelled' ? 'Cancelled' : item.status;
+
     // First filter by status
-    const statusMatch = filter === "All" || item.status === filter;
+    const statusMatch = filter === "All" || displayStatus === filter;
+
+    // Get student name from user object
+    const studentName = item.user ? `${item.user.fname} ${item.user.lname}` : '';
+    const studentCourse = item.user?.course || '';
+    const address = `${item.brgy}, ${item.municipality}, ${item.province}`;
 
     // Then search by query (searches in multiple fields)
     const searchMatch = searchQuery === "" || 
-      item.student.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.purpose.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.course.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.date.toLowerCase().includes(searchQuery.toLowerCase());
-
+      address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      studentCourse.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.schedule_date?.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Return true only if all conditions are met
     return statusMatch && searchMatch;
@@ -110,17 +261,37 @@ const Transaction = () => {
 
   // STATUS COLORS
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Completed":
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
+      case "completed":
         return "bg-green-100 text-green-700 hover:bg-green-100";
-      case "Pending":
+      case "pending":
         return "bg-red-100 text-red-700 hover:bg-red-100";
-      case "Processing":
+      case "approved":
         return "bg-blue-100 text-blue-700 hover:bg-blue-100";
+      case "rejected":
+        return "bg-gray-100 text-gray-700 hover:bg-gray-100";
+      case "cancelled":
+        return "bg-orange-100 text-orange-700 hover:bg-orange-100";
       default:
         return "bg-gray-100 text-gray-700";
     }
   };
+
+  // Get display status
+  const getDisplayStatus = (status) => {
+    if (status === 'approved') return 'Approved';
+    if (status === 'pending') return 'Pending';
+    if (status === 'completed') return 'Completed';
+    if (status === 'rejected') return 'Rejected';
+    if (status === 'cancelled') return 'Cancelled';
+    return status;
+  };
+
+  // Calculate statistics
+  const totalTransactions = transactions.length;
+  const pendingCount = transactions.filter(t => t.status === 'pending').length;
+  const completedCount = transactions.filter(t => t.status === 'completed').length;
 
   return (
     <SidebarProvider>
@@ -159,13 +330,10 @@ const Transaction = () => {
                     <div className="bg-green-100 p-2 rounded-full">
                       <ArrowRightLeft className="h-4 w-4 text-green-700" />
                     </div>
-                    <Badge className="bg-green-100 text-green-700">
-                      +12.4%
-                    </Badge>
                   </div>
 
                   <h2 className="text-3xl font-bold text-slate-800">
-                    4,821
+                    {totalTransactions}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
                     Total Transactions
@@ -179,13 +347,10 @@ const Transaction = () => {
                     <div className="bg-yellow-100 p-2 rounded-full">
                       <Hourglass className="h-4 w-4 text-yellow-600" />
                     </div>
-                    <Badge className="bg-red-100 text-red-600">
-                      +3.1%
-                    </Badge>
                   </div>
 
                   <h2 className="text-3xl font-bold text-slate-800">
-                    148
+                    {pendingCount}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
                     Pending Requests
@@ -199,13 +364,10 @@ const Transaction = () => {
                     <div className="bg-blue-100 p-2 rounded-full">
                       <CheckCircle2 className="h-4 w-4 text-blue-600" />
                     </div>
-                    <Badge className="bg-green-100 text-green-700">
-                      +8.7%
-                    </Badge>
                   </div>
 
                   <h2 className="text-3xl font-bold text-slate-800">
-                    3,609
+                    {completedCount}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
                     Completed Services
@@ -263,14 +425,14 @@ const Transaction = () => {
 
                     <Button
                       variant={filter === "Processing" ? "default" : "outline"}
-                      onClick={() => setFilter("Processing")}
+                      onClick={() => setFilter("Approved")}
                       className={
-                        filter === "Processing"
+                        filter === "Approved"
                           ? "bg-blue-600 hover:bg-blue-700 text-white"
                           : ""
                       }
                     >
-                      Processing
+                      Approved
                     </Button>
                   </div>
                 </div>
@@ -286,31 +448,110 @@ const Transaction = () => {
                         <TableHead>Address</TableHead>
                         <TableHead>Course</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
 
                     <TableBody>
-                      {filteredTransactions.length > 0 ? (
-                        filteredTransactions.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{item.date}</TableCell>
-                            <TableCell className="font-medium">
-                              {item.student}
-                            </TableCell>
-                            <TableCell>{item.purpose}</TableCell>
-                            <TableCell>{item.address}</TableCell>
-                            <TableCell>{item.course}</TableCell>
-                            <TableCell>
-                              <Badge className={getStatusColor(item.status)}>
-                                {item.status}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+                            <p className="text-gray-500 mt-2">Loading transactions...</p>
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredTransactions.length > 0 ? (
+                        filteredTransactions.map((item) => {
+                          const studentName = item.user ? `${item.user.fname} ${item.user.lname}` : 'N/A';
+                          const address = `${item.brgy}, ${item.municipality}`;
+                          const course = item.user?.course || 'N/A';
+                          const displayStatus = getDisplayStatus(item.status);
+
+                          return (
+                            <TableRow key={item.id}>
+                              <TableCell>{formatDate(item.schedule_date)}</TableCell>
+                              <TableCell className="font-medium">
+                                {studentName}
+                              </TableCell>
+                              <TableCell>{item.purpose}</TableCell>
+                              <TableCell>{address}</TableCell>
+                              <TableCell>{course}</TableCell>
+                              <TableCell>
+                                <Badge className={getStatusColor(displayStatus)}>
+                                  {displayStatus}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  {/* Pending status: Show Approve and Reject buttons */}
+                                  {item.status === 'pending' && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApprove(item.id)}
+                                        disabled={actionLoading === item.id}
+                                        className="bg-green-600 hover:bg-green-700 text-white h-8"
+                                      >
+                                        {actionLoading === item.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <Check className="h-3 w-3 mr-1" />
+                                            Approve
+                                          </>
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => handleReject(item.id)}
+                                        disabled={actionLoading === item.id}
+                                        className="h-8"
+                                      >
+                                        {actionLoading === item.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <X className="h-3 w-3 mr-1" />
+                                            Reject
+                                          </>
+                                        )}
+                                      </Button>
+                                    </>
+                                  )}
+
+                                  {/* Processing (approved) status: Show Complete button */}
+                                  {item.status === 'approved' && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleComplete(item.id)}
+                                      disabled={actionLoading === item.id}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white h-8"
+                                    >
+                                      {actionLoading === item.id ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Check className="h-3 w-3 mr-1" />
+                                          Complete
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+
+                                  {/* Completed, Rejected, Cancelled: No actions */}
+                                  {(item.status === 'completed' || item.status === 'rejected' || item.status === 'cancelled') && (
+                                    <span className="text-xs text-gray-400">No actions</span>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       ) : (
                         <TableRow>
                           <TableCell
-                            colSpan={6}
+                            colSpan={7}
                             className="text-center py-8 text-gray-500"
                           >
                             {searchQuery

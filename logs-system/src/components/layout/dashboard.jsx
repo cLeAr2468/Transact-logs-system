@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Calendar, RefreshCw, CheckCircle, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, RefreshCw, CheckCircle, Star, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,24 +13,79 @@ import {
 } from '@/components/ui/table';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './Asidebar';
+import { toast } from 'sonner';
 
 const Dashboard = () => {
-  const [selectedMonth, setSelectedMonth] = useState('5'); // May
-  const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // Current month
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear()); // Current year
+  const [loading, setLoading] = useState(true);
+  const [statistics, setStatistics] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [performanceData, setPerformanceData] = useState([]);
+
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [selectedMonth, selectedYear]);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
+      // Fetch all dashboard data in parallel with month/year filters
+      const [statsRes, transactionsRes, performanceRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/admin/dashboard/statistics?month=${selectedMonth}&year=${selectedYear}`, { headers }),
+        fetch(`${API_BASE_URL}/admin/dashboard/recent-transactions?limit=10&month=${selectedMonth}&year=${selectedYear}`, { headers }),
+        fetch(`${API_BASE_URL}/admin/dashboard/performance?month=${selectedMonth}&year=${selectedYear}`, { headers })
+      ]);
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStatistics(statsData.statistics);
+      }
+
+      if (transactionsRes.ok) {
+        const transactionsData = await transactionsRes.json();
+        setTransactions(transactionsData.transactions);
+      }
+
+      if (performanceRes.ok) {
+        const performanceResData = await performanceRes.json();
+        setPerformanceData(performanceResData.performance);
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const months = [
-    { value: '1', label: 'January' },
-    { value: '2', label: 'February' },
-    { value: '3', label: 'March' },
-    { value: '4', label: 'April' },
-    { value: '5', label: 'May' },
-    { value: '6', label: 'June' },
-    { value: '7', label: 'July' },
-    { value: '8', label: 'August' },
-    { value: '9', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' }
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' }
   ];
 
   const years = ['2024', '2025', '2026', '2027'];
@@ -41,94 +96,53 @@ const Dashboard = () => {
 
   const getDateRange = () => {
     const monthName = getMonthName(selectedMonth);
-    const lastDay = new Date(selectedYear, parseInt(selectedMonth), 0).getDate();
+    const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
     return `${monthName} 1 - ${monthName} ${lastDay}, ${selectedYear}`;
   };
-  const stats = [
+
+  // Build stats array from backend data
+  const stats = statistics ? [
     {
       title: 'Total Transactions',
-      value: '4,821',
-      description: '26% of monthly target',
+      value: statistics.total_transactions.toLocaleString(),
+      description: `${statistics.target_percentage}% of monthly target`,
       icon: RefreshCw,
       trend: '+2.4%',
       trendUp: true,
-      progress: 26,
+      progress: statistics.target_percentage,
       progressColor: 'from-black to-gray-800'
     },
     {
       title: 'Pending Requests',
-      value: '148',
+      value: statistics.pending_requests.toLocaleString(),
       description: 'Needs attention soon',
       icon: Calendar,
-      trend: '+3.1%',
+      trend: statistics.pending_trend,
       trendUp: false,
       progress: 45,
       progressColor: 'from-orange-500 to-orange-600'
     },
     {
       title: 'Completed Services',
-      value: '3,609',
-      description: '88% completion rate',
+      value: statistics.completed_services.toLocaleString(),
+      description: `${statistics.completion_rate}% completion rate`,
       icon: CheckCircle,
       trend: '+8.7%',
       trendUp: true,
-      progress: 88,
+      progress: statistics.completion_rate,
       progressColor: 'from-blue-500 to-blue-600'
     },
     {
       title: 'Feedback Score',
-      value: '4.7',
+      value: statistics.feedback_score.toString(),
       suffix: '/5',
-      description: 'Based on 1,284 reviews',
+      description: `Based on ${statistics.feedback_count} reviews`,
       icon: Star,
       trend: '+0.3',
       trendUp: true,
-      rating: 4.5
+      rating: statistics.feedback_score
     }
-  ];
-
-  const transactions = [
-    {
-      date: 'Jun 30, 2025',
-      student: 'Criscel Jane',
-      purpose: 'Good Moral Certificate',
-      address: 'Brgy. Quezon, San Jorge',
-      course: 'BS Agriculture',
-      status: 'Completed'
-    },
-    {
-      date: 'Jun 30, 2025',
-      student: 'Lean Cabarles',
-      purpose: 'TES Scholarship',
-      address: 'Brgy. Erenas, San Jorge',
-      course: 'BS Education',
-      status: 'Pending'
-    },
-    {
-      date: 'Jun 29, 2025',
-      student: 'Kyla Aliman',
-      purpose: 'Student Clearance',
-      address: 'Gandara Samar',
-      course: 'BS Information Technology',
-      status: 'Processing'
-    },
-    {
-      date: 'Jun 28, 2025',
-      student: 'Renato Bordallo',
-      purpose: 'ID Validation',
-      address: 'Pagsaghan Samar',
-      course: 'BS Criminology',
-      status: 'Processing'
-    }
-  ];
-
-  const performanceData = [
-    { label: 'ID Validation', value: 920, color: 'from-emerald-400 to-emerald-500' },
-    { label: 'Good Moral', value: 640, color: 'from-lime-400 to-lime-500' },
-    { label: 'Scholarship', value: 838, color: 'from-yellow-400 to-yellow-500' },
-    { label: 'Student Clearance', value: 1102, color: 'from-green-400 to-green-500' },
-    { label: 'Request ID Form', value: 355, color: 'from-pink-400 to-pink-500' }
-  ];
+  ] : [];
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
@@ -137,6 +151,7 @@ const Dashboard = () => {
       case 'pending':
         return 'bg-orange-100 text-orange-800';
       case 'processing':
+      case 'approved':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -157,6 +172,16 @@ const Dashboard = () => {
       />
     ));
   };
+
+  // Assign colors to performance data
+  const colors = ['from-emerald-400 to-emerald-500', 'from-lime-400 to-lime-500', 'from-yellow-400 to-yellow-500', 'from-green-400 to-green-500', 'from-pink-400 to-pink-500'];
+  const performanceWithColors = performanceData.map((item, index) => ({
+    ...item,
+    color: colors[index % colors.length]
+  }));
+
+  // Calculate max value for progress bars
+  const maxPerformanceValue = Math.max(...performanceData.map(p => p.value), 1);
 
   return (
     <SidebarProvider>
@@ -198,41 +223,48 @@ const Dashboard = () => {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {stats.map((stat, index) => (
-                <Card key={index} className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <stat.icon className="w-5 h-5 text-gray-500" />
-                      <span className={`text-sm font-medium ${stat.trendUp ? 'text-green-600' : 'text-red-600'}`}>
-                        {stat.trend}
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-3xl font-bold text-gray-900">{stat.value}</span>
-                      {stat.suffix && <span className="text-lg text-gray-500">{stat.suffix}</span>}
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3">{stat.title}</p>
-                    <p className="text-xs text-gray-500">{stat.description}</p>
-                    
-                    {stat.progress !== undefined && (
-                      <div className="mt-3">
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full bg-gradient-to-r ${stat.progressColor} transition-all duration-500`}
-                            style={{ width: `${stat.progress}%` }}
-                          />
+              {loading ? (
+                <div className="col-span-full flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#15592F]" />
+                  <span className="ml-3 text-gray-500">Loading dashboard...</span>
+                </div>
+              ) : (
+                stats.map((stat, index) => (
+                  <Card key={index} className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <stat.icon className="w-5 h-5 text-gray-500" />
+                        <span className={`text-sm font-medium ${stat.trendUp ? 'text-green-600' : 'text-red-600'}`}>
+                          {stat.trend}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1 mb-1">
+                        <span className="text-3xl font-bold text-gray-900">{stat.value}</span>
+                        {stat.suffix && <span className="text-lg text-gray-500">{stat.suffix}</span>}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">{stat.title}</p>
+                      <p className="text-xs text-gray-500">{stat.description}</p>
+                      
+                      {stat.progress !== undefined && (
+                        <div className="mt-3">
+                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full bg-gradient-to-r ${stat.progressColor} transition-all duration-500`}
+                              style={{ width: `${Math.min(stat.progress, 100)}%` }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {stat.rating && (
-                      <div className="flex mt-2">
-                        {renderStars(stat.rating)}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      {stat.rating && (
+                        <div className="flex mt-2">
+                          {renderStars(stat.rating)}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -242,8 +274,10 @@ const Dashboard = () => {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-lg font-semibold">Recent Transactions</CardTitle>
-                        <CardDescription>Latest service requests and updates</CardDescription>
+                        <CardTitle className="text-lg font-semibold">
+                          Recent Transactions - {getMonthName(selectedMonth)} {selectedYear}
+                        </CardTitle>
+                        <CardDescription>Latest service requests for the selected period</CardDescription>
                       </div>
                       <Button variant="ghost" size="sm" className="text-green-600">
                         View All
@@ -263,20 +297,34 @@ const Dashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {transactions.map((transaction, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{transaction.date}</TableCell>
-                            <TableCell className="font-medium">{transaction.student}</TableCell>
-                            <TableCell>{transaction.purpose}</TableCell>
-                            <TableCell>{transaction.address}</TableCell>
-                            <TableCell>{transaction.course}</TableCell>
-                            <TableCell>
-                              <Badge className={`${getStatusColor(transaction.status)}`}>
-                                {transaction.status}
-                              </Badge>
+                        {loading ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8">
+                              <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
                             </TableCell>
                           </TableRow>
-                        ))}
+                        ) : transactions.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                              No recent transactions
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          transactions.map((transaction, index) => (
+                            <TableRow key={transaction.id || index}>
+                              <TableCell>{transaction.date}</TableCell>
+                              <TableCell className="font-medium">{transaction.student}</TableCell>
+                              <TableCell>{transaction.purpose}</TableCell>
+                              <TableCell>{transaction.address}</TableCell>
+                              <TableCell>{transaction.course}</TableCell>
+                              <TableCell>
+                                <Badge className={`${getStatusColor(transaction.status)}`}>
+                                  {transaction.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
                       </TableBody>
                     </Table>
                   </CardContent>
@@ -287,25 +335,39 @@ const Dashboard = () => {
               <div className="lg:col-span-1 left">
                 <Card className="bg-gradient-to-br from-[#15592F] to-[#0d3d20] text-white h-full">
                   <CardHeader>
-                    <CardTitle className="text-white text-[14px]">Performance Summary</CardTitle>
-                    <CardDescription className="text-green-100 text-[14px]">Current semester overview</CardDescription>
+                    <CardTitle className="text-white text-[14px]">
+                      Performance Summary - {getMonthName(selectedMonth)} {selectedYear}
+                    </CardTitle>
+                    <CardDescription className="text-green-100 text-[14px]">
+                      Top purposes for selected period
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {performanceData.map((item, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-green-100">{item.label}</span>
-                            <span className="text-sm font-semibold text-white">{item.value}</span>
-                          </div>
-                          <div className="h-2 bg-green-900/40 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full bg-gradient-to-r ${item.color} transition-all duration-500`}
-                              style={{ width: `${(item.value / 1200) * 100}%` }}
-                            />
-                          </div>
+                      {loading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-green-100" />
                         </div>
-                      ))}
+                      ) : performanceWithColors.length === 0 ? (
+                        <div className="text-center py-8 text-green-100">
+                          No performance data
+                        </div>
+                      ) : (
+                        performanceWithColors.map((item, index) => (
+                          <div key={index} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-green-100">{item.label}</span>
+                              <span className="text-sm font-semibold text-white">{item.value}</span>
+                            </div>
+                            <div className="h-2 bg-green-900/40 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full bg-gradient-to-r ${item.color} transition-all duration-500`}
+                                style={{ width: `${(item.value / maxPerformanceValue) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>

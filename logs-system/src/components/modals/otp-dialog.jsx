@@ -22,14 +22,13 @@ export default function VerifyOtpDialog({
   email = "email@email.com",
   onBack,
   onVerify,
+  onResend,
+  otp,
+  setOtp,
+  loading = false,
 }) {
-  const [otp, setOtp] = useState("");
 
   const handleVerify = () => {
-    console.log(otp);
-    // Add your verification logic here
-    
-    // If verification is successful, trigger onVerify callback
     if (onVerify) {
       onVerify();
     }
@@ -40,6 +39,12 @@ export default function VerifyOtpDialog({
       onBack();
     } else {
       onOpenChange(false);
+    }
+  };
+
+  const handleResend = () => {
+    if (onResend) {
+      onResend();
     }
   };
 
@@ -79,6 +84,7 @@ export default function VerifyOtpDialog({
               maxLength={6}
               value={otp}
               onChange={(value) => setOtp(value)}
+              disabled={loading}
             >
               <InputOTPGroup className="gap-1.5 sm:gap-3">
                 <InputOTPSlot
@@ -115,7 +121,7 @@ export default function VerifyOtpDialog({
             <span>
               Code expires in{" "}
               <span className="font-semibold text-green-700">
-                04:32
+                05:00
               </span>
             </span>
           </div>
@@ -123,17 +129,29 @@ export default function VerifyOtpDialog({
           {/* Verify Button */}
           <Button
             onClick={handleVerify}
-            className="mt-6 h-12 w-full rounded-xl bg-green-700 text-base hover:bg-green-800 sm:mt-8 sm:h-14 sm:text-lg"
+            disabled={loading || otp.length !== 6}
+            className="mt-6 h-12 w-full rounded-xl bg-green-700 text-base hover:bg-green-800 sm:mt-8 sm:h-14 sm:text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <CheckCircle2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-            Verify
+            {loading ? (
+              <>
+                <span className="mr-2">Verifying...</span>
+                <span className="animate-spin">⏳</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                Verify
+              </>
+            )}
           </Button>
 
           {/* Resend */}
           <div className="mt-6 text-center text-sm text-gray-500 sm:mt-8 sm:text-base">
             Didn't receive the code?{" "}
             <button
-              className="font-semibold text-green-700 hover:underline"
+              onClick={handleResend}
+              disabled={loading}
+              className="font-semibold text-green-700 hover:underline disabled:opacity-50"
             >
               Resend Code
             </button>
@@ -153,7 +171,8 @@ export default function VerifyOtpDialog({
           {/* Back */}
           <button
             onClick={handleBack}
-            className="flex items-center gap-2 text-sm font-semibold text-green-700 hover:underline sm:text-base"
+            disabled={loading}
+            className="flex items-center gap-2 text-sm font-semibold text-green-700 hover:underline sm:text-base disabled:opacity-50"
           >
             <ArrowLeft size={18} />
             Back to Login

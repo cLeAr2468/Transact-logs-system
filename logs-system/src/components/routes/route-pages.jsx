@@ -9,7 +9,9 @@ import Announcement from "@/components/pages/announce";
 import AddTransaction from "@/components/pages/add-transact"
 import AddAnnouncement from "@/components/pages/announce-form";
 import Register from "@/components/pages/Client-register";
-
+import Masteerlist from "@/components/pages/master-list";
+import AddManual from "@/components/pages/add-manual";
+import AddStaff from "@/components/pages/add-staff";
 
 function Reroutes() {
   return (
@@ -24,6 +26,9 @@ function Reroutes() {
       <Route path="/add-transact" element={<AddTransaction />} />
       <Route path="/add-announcement" element={<AddAnnouncement />} />
       <Route path="/Client-register" element={<Register />} />
+      <Route path="/master-list" element={<Masteerlist />} />
+      <Route path="/add-manual" element={<AddManual />} />
+      <Route path="/add-staff" element={<AddStaff />} />
     </Routes>
   );
 }

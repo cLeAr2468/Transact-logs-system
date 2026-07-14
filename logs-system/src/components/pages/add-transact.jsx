@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { Plus, Search, Calendar, MapPin, Check, ArrowLeft } from 'lucide-react';
-
+import { Plus, Calendar, MapPin, Check, ArrowLeft, Loader2 } from 'lucide-react';
+import { Label } from '../ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,15 +11,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {Link} from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
+import { toast } from 'sonner';
 
 export default function TransactionForm() {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Form state
+  const [studentId, setStudentId] = useState('');
+  const [userData, setUserData] = useState(null);
+  const [isUserValidated, setIsUserValidated] = useState(false);
+  
   // ✅ SINGLE STATE FOR BOTH MORNING & AFTERNOON
   const [selectedTime, setSelectedTime] = useState('09:30 AM');
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [purpose, setPurpose] = useState('');
+  
+  // Address fields
+  const [streetHouseNo, setStreetHouseNo] = useState('');
+  const [barangay, setBarangay] = useState('');
+  const [municipality, setMunicipality] = useState('');
+  const [province, setProvince] = useState('');
+
+  // Get today's date in YYYY-MM-DD format for min attribute
+  const today = new Date().toISOString().split('T')[0];
 
   const morningTimes = [
     '09:00 AM',
@@ -38,6 +58,176 @@ export default function TransactionForm() {
     '03:00 PM',
     '03:30 PM',
   ];
+
+  // Validate student ID
+  const handleValidateStudentId = async () => {
+    if (!studentId.trim()) {
+      toast.error('Please enter a Client ID');
+      return;
+    }
+
+    setIsValidating(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      
+      if (!token) {
+        toast.error('You are not logged in. Please login first.');
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/transactions/validate-student`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ student_id: studentId })
+      });
+
+      const data = await response.json();
+
+      if (response.status === 401) {
+        toast.error('Session expired. Please login again.');
+        navigate('/login');
+        return;
+      }
+
+      if (response.ok && data.found) {
+        setUserData(data.user);
+        setIsUserValidated(true);
+        toast.success('Student found! Information loaded.');
+      } else {
+        toast.error(data.message || 'Student ID not found in the database');
+        setUserData(null);
+        setIsUserValidated(false);
+      }
+    } catch (error) {
+      console.error('Validation error:', error);
+      toast.error('Failed to validate Student ID. Please try again.');
+      setIsUserValidated(false);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  // Handle student ID input change
+  const handleStudentIdChange = (e) => {
+    setStudentId(e.target.value);
+    setIsUserValidated(false);
+    setUserData(null);
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    // Validation
+    if (!isUserValidated) {
+      toast.error('Please validate the Client ID first');
+      return;
+    }
+
+    if (!scheduleDate) {
+      toast.error('Please select a schedule date');
+      return;
+    }
+
+    if (!purpose) {
+      toast.error('Please select a purpose for appointment');
+      return;
+    }
+
+    if (!streetHouseNo || !barangay || !municipality || !province) {
+      toast.error('Please fill in all address fields');
+      return;
+    }
+
+    if (!selectedTime) {
+      toast.error('Please select a time slot');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      
+      if (!token) {
+        toast.error('You are not logged in. Please login first.');
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/transactions/create-by-admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          student_id: studentId,
+          purpose: purpose,
+          street_house_no: streetHouseNo,
+          brgy: barangay,
+          municipality: municipality,
+          province: province,
+          schedule_date: scheduleDate,
+          time_slot: selectedTime
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.status === 401) {
+        toast.error('Session expired. Please login again.');
+        navigate('/login');
+        return;
+      }
+
+      if (response.ok) {
+        toast.success('Transaction created successfully!');
+        // Reset form or navigate
+        navigate('/add-transact');
+      } else {
+        toast.error(data.message || 'Failed to create transaction');
+      }
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error('Failed to create transaction. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle cancel
+  const handleCancel = () => {
+    if (studentId || purpose || scheduleDate || timeSlot) {
+      toast.warning(
+        <div>
+          <p className="font-semibold">Cancel Transaction?</p>
+          <p className="text-sm">All unsaved data will be lost.</p>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => {
+                navigate('/transact');
+                toast.dismiss();
+              }}
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+            >
+              Yes, Cancel
+            </button>
+            <button
+              onClick={() => toast.dismiss()}
+              className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+            >
+              No, Continue
+            </button>
+          </div>
+        </div>,
+        { duration: 10000 }
+      );
+    } else {
+      navigate('/transact');
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -59,14 +249,6 @@ export default function TransactionForm() {
                   Back
                 </Link>
               </Button>
-            </div>
-
-            {/* SEARCH */}
-            <div className="mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input placeholder="Search Client ID..." className="pl-10 bg-white border-solid " />
-              </div>
             </div>
 
             {/* MAIN CARD */}
@@ -92,19 +274,36 @@ export default function TransactionForm() {
                 <div className="space-y-6">
 
                   {/* DATE + COURSE */}
-                  <div className="grid grid-cols-4 gap-6">
+                  <div className="grid grid-cols-3 gap-6">
                     <div>
                       <label className="text-sm text-gray-600 mb-2 block">
                         Client ID
                       </label>
-                      <Input placeholder="Enter Client ID" />
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                        <Calendar size={14} />
-                        Date Today
-                      </label>
-                      <Input type="date" />
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Enter Client ID" 
+                          value={studentId}
+                          onChange={handleStudentIdChange}
+                          disabled={isValidating}
+                        />
+                        <Button 
+                          onClick={handleValidateStudentId}
+                          disabled={isValidating || !studentId.trim()}
+                          className="bg-[#15592F] hover:bg-[#124b28]"
+                        >
+                          {isValidating ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Validating...
+                            </>
+                          ) : (
+                            'Validate'
+                          )}
+                        </Button>
+                      </div>
+                      {isUserValidated && userData && (
+                        <p className="text-xs text-green-600 mt-1">✓ Student found</p>
+                      )}
                     </div>
 
                     <div>
@@ -112,27 +311,37 @@ export default function TransactionForm() {
                         <Calendar size={14} />
                         Schedule Date
                       </label>
-                      <Input type="date" />
+                      <Input 
+                        type="date" 
+                        value={scheduleDate}
+                        onChange={(e) => setScheduleDate(e.target.value)}
+                        min={today}
+                        disabled={!isUserValidated}
+                      />
                     </div>
-
-                    
-
-                    <div>
-                      <label className="text-sm text-gray-600 mb-2 block">
-                        Purpose
-                      </label>
-
-                      <Select defaultValue="id-validation">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select purpose" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="id-validation">ID Validation</SelectItem>
-                          <SelectItem value="enrollment">Enrollment</SelectItem>
-                          <SelectItem value="registration">Registration</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                   {/* Purpose for Appointment */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700 lg:text-base">
+                Purpose for Appointment
+              </Label>
+              <Select 
+                value={purpose} 
+                onValueChange={setPurpose}
+                disabled={!isUserValidated}
+              >
+                <SelectTrigger className="h-10 rounded-lg border-2 text-sm sm:h-12 sm:rounded-xl sm:text-base lg:h-14 lg:text-md">
+                  <SelectValue placeholder="Select purpose" />
+                </SelectTrigger>
+                <SelectContent className="w-full">
+                  <SelectItem value="ID Validation">ID Validation</SelectItem>
+                  <SelectItem value="scholarship">Scholarship</SelectItem>
+                  <SelectItem value="Good Moral">Good Moral</SelectItem>
+                  <SelectItem value="Assistance in Scholarship">Assistance in Scholarship</SelectItem>
+                  <SelectItem value="ID Request Form">ID Request Form</SelectItem>
+                  <SelectItem value="Student Clearance">Student Clearance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
                   </div>
 
                   {/* CLIENT + NAME */}
@@ -142,27 +351,47 @@ export default function TransactionForm() {
                       <label className="text-sm text-gray-600 mb-2 block">
                         First Name
                       </label>
-                      <Input defaultValue="Juan" />
+                      <Input 
+                        value={userData?.fname || ''} 
+                        readOnly 
+                        disabled
+                        className="bg-gray-50"
+                      />
                     </div>
 
                     <div>
                       <label className="text-sm text-gray-600 mb-2 block">
                         Middle Name
                       </label>
-                      <Input defaultValue="Santos" />
+                      <Input 
+                        value={userData?.mname || ''} 
+                        readOnly 
+                        disabled
+                        className="bg-gray-50"
+                      />
                     </div>
 
                     <div>
                       <label className="text-sm text-gray-600 mb-2 block">
                         Last Name
                       </label>
-                      <Input defaultValue="Dela Cruz" />
+                      <Input 
+                        value={userData?.lname || ''} 
+                        readOnly 
+                        disabled
+                        className="bg-gray-50"
+                      />
                     </div>
                                         <div>
                       <label className="text-sm text-gray-600 mb-2 block">
                         Course
                       </label>
-                      <Input value="BSIT" readOnly />
+                      <Input 
+                        value={userData?.course || ''} 
+                        readOnly 
+                        disabled
+                        className="bg-gray-50"
+                      />
                     </div>
                   </div>
 
@@ -174,10 +403,30 @@ export default function TransactionForm() {
                     </h3>
 
                     <div className="grid grid-cols-2 gap-6">
-                      <Input placeholder="Street / House No." />
-                      <Input placeholder="Barangay" />
-                      <Input placeholder="City / Municipality" />
-                      <Input placeholder="Province" />
+                      <Input 
+                        placeholder="Street / House No." 
+                        value={streetHouseNo}
+                        onChange={(e) => setStreetHouseNo(e.target.value)}
+                        disabled={!isUserValidated}
+                      />
+                      <Input 
+                        placeholder="Barangay" 
+                        value={barangay}
+                        onChange={(e) => setBarangay(e.target.value)}
+                        disabled={!isUserValidated}
+                      />
+                      <Input 
+                        placeholder="City / Municipality" 
+                        value={municipality}
+                        onChange={(e) => setMunicipality(e.target.value)}
+                        disabled={!isUserValidated}
+                      />
+                      <Input 
+                        placeholder="Province" 
+                        value={province}
+                        onChange={(e) => setProvince(e.target.value)}
+                        disabled={!isUserValidated}
+                      />
                     </div>
                   </div>
 
@@ -190,11 +439,12 @@ export default function TransactionForm() {
                         <button
                           key={time}
                           onClick={() => setSelectedTime(time)}
+                          disabled={!isUserValidated}
                           className={`py-2 px-3 rounded-full text-sm transition-all ${
                             selectedTime === time
                               ? 'bg-black text-white'
                               : 'bg-gray-100 hover:bg-gray-200'
-                          }`}
+                          } ${!isUserValidated ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           {time}
                         </button>
@@ -211,11 +461,12 @@ export default function TransactionForm() {
                         <button
                           key={time}
                           onClick={() => setSelectedTime(time)}
+                          disabled={!isUserValidated}
                           className={`py-2 px-3 rounded-full text-sm transition-all ${
                             selectedTime === time
                               ? 'bg-black text-white'
                               : 'bg-gray-100 hover:bg-gray-200'
-                          }`}
+                          } ${!isUserValidated ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           {time}
                         </button>
@@ -226,13 +477,26 @@ export default function TransactionForm() {
                   {/* ACTIONS */}
                   <div className="flex justify-end gap-4 pt-6 border-t">
 
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handleCancel}>
                       Cancel
                     </Button>
 
-                    <Button className="bg-[#15592F] hover:bg-[#124b28] flex items-center gap-2">
-                      <Check size={16} />
-                      SUBMIT TRANSACTION
+                    <Button 
+                      className="bg-[#15592F] hover:bg-[#124b28] flex items-center gap-2"
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || !isUserValidated}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Check size={16} />
+                          SUBMIT TRANSACTION
+                        </>
+                      )}
                     </Button>
 
                   </div>

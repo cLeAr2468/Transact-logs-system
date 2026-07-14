@@ -9,9 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { updateUser } from '../../api/userApi';
+import { updateMasterlistEntry } from '../../api/masterlistApi';
 
-const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
+const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated }) => {
   const [formData, setFormData] = useState({
     student_id: '',
     fname: '',
@@ -26,21 +26,21 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (client) {
-      console.log("📝 Client data received:", client);
+    if (masterlist) {
+      console.log("📝 Masterlist data received:", masterlist);
       setFormData({
-        student_id: client.student_id || '',
-        fname: client.fname || '',
-        mname: client.mname || '',
-        lname: client.lname || '',
-        email: client.email || '',
-        course: client.course || '',
-        year_level: client.year_level || '',
-        status: client.status || 'Active',
+        student_id: masterlist.student_id || '',
+        fname: masterlist.fname || '',
+        mname: masterlist.mname || '',
+        lname: masterlist.lname || '',
+        email: masterlist.email || '',
+        course: masterlist.course || '',
+        year_level: masterlist.year_level || '',
+        status: masterlist.status || 'Active',
       });
-      setError(""); // Clear error when new client is selected
+      setError(""); // Clear error when new masterlist is selected
     }
-  }, [client]);
+  }, [masterlist]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -84,7 +84,7 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
       return;
     }
     if (!formData.year_level) {
-      setError("Year is required");
+      setError("Year level is required");
       return;
     }
 
@@ -92,26 +92,26 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
     setError("");
 
     try {
-      const response = await updateUser(client.id, formData);
-      console.log("✅ User updated:", response);
+      const response = await updateMasterlistEntry(masterlist.id, formData);
+      console.log("✅ Masterlist updated:", response);
       
-      alert(response.message || "User updated successfully!");
+      alert(response.message || "Masterlist entry updated successfully!");
       
       // Notify parent component to refresh data
-      if (onUserUpdated) {
-        onUserUpdated();
+      if (onMasterlistUpdated) {
+        onMasterlistUpdated();
       }
       
       onClose();
     } catch (err) {
-      console.error("❌ Error updating user:", err);
+      console.error("❌ Error updating masterlist:", err);
       
       // Handle validation errors
       if (err.errors) {
         const firstError = Object.values(err.errors)[0];
         setError(Array.isArray(firstError) ? firstError[0] : firstError);
       } else {
-        setError(err.message || "Failed to update user");
+        setError(err.message || "Failed to update masterlist entry");
       }
     } finally {
       setLoading(false);
@@ -125,7 +125,7 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
-          <h2 className="text-2xl font-semibold text-gray-900">Edit Client</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Edit Masterlist Entry</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -149,7 +149,7 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
             {/* Student ID */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Student ID
+                Student ID <span className="text-red-500">*</span>
               </label>
               <Input
                 type="text"
@@ -240,23 +240,19 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
                   <SelectValue placeholder="Select course" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="BSIT">BSIT</SelectItem>
-                  <SelectItem value="BSCS">BSCS</SelectItem>
-                  <SelectItem value="BEED">BEED</SelectItem>
-                  <SelectItem value="BSEC">BSEC</SelectItem>
-                  <SelectItem value="BSCRIM">BSCRIM</SelectItem>
-                  <SelectItem value="BSA">BSA</SelectItem>
-                  <SelectItem value="BTLED">BTLED</SelectItem>
-                  <SelectItem value="BSF">BSF</SelectItem>
-                  <SelectItem value="BSABE">BSABE</SelectItem>
+                    <SelectItem value="BSCS">BSCS</SelectItem>
+                    <SelectItem value="BSIT">BSIT</SelectItem>
+                    <SelectItem value="BSCOE">BSCOE</SelectItem>
+                    <SelectItem value="BSEE">BSEE</SelectItem>
+                    <SelectItem value="BSME">BSME</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Year */}
+            {/* Year Level */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Year <span className="text-red-500">*</span>
+                Year Level <span className="text-red-500">*</span>
               </label>
               <Select 
                 value={formData.year_level} 
@@ -264,7 +260,7 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
                 disabled={loading}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select year" />
+                  <SelectValue placeholder="Select year level" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1st Year">1st Year</SelectItem>
@@ -328,4 +324,4 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
   );
 };
 
-export default EditClientDialog;
+export default EditMasterlistDialog;

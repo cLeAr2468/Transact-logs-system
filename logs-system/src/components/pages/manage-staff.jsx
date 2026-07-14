@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { Search, Users, CheckCircle, XCircle, Crown, Plus, Edit, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Users, CheckCircle, XCircle, Crown, Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { getAllStaff, deleteStaff } from '../../api/staffApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
 import {
   Select,
   SelectContent,
@@ -28,79 +30,58 @@ const ManageUser = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('All');
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Fetch staff data on component mount
+  useEffect(() => {
+    fetchStaffData();
+  }, []);
+
+  const fetchStaffData = async () => {
+    setLoading(true);
+    setError("");
+    
+    try {
+      const response = await getAllStaff();
+      console.log("✅ Staff data fetched:", response);
+      setUsers(response.staff || []);
+    } catch (err) {
+      console.error("❌ Error fetching staff:", err);
+      setError(err.message || "Failed to load staff data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate stats from real data
+  const totalUsers = users.length;
+  const activeUsers = users.filter(user => user.status === 'Active').length;
+  const inactiveUsers = users.filter(user => user.status === 'Inactive').length;
 
   const stats = [
     {
       title: 'Total Users',
-      value: '5',
+      value: totalUsers.toString(),
       icon: Users,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600'
     },
     {
       title: 'Active Accounts',
-      value: '4',
+      value: activeUsers.toString(),
       icon: CheckCircle,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600'
     },
     {
       title: 'Inactive Accounts',
-      value: '1',
+      value: inactiveUsers.toString(),
       icon: XCircle,
       bgColor: 'bg-red-50',
       iconColor: 'text-red-600'
     },
-    {
-      title: 'Admin Roles',
-      value: '2',
-      icon: Crown,
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600'
-    }
-  ];
-
-  const users = [
-    {
-      id: 1,
-      name: 'Juan Dela Cruz',
-      email: 'juan.delacruz@nwssu.edu.ph',
-      role: 'Administrator',
-      status: 'Active',
-      lastLogin: 'Jun 14, 2026 09:30 AM'
-    },
-    {
-      id: 2,
-      name: 'Maria Santos',
-      email: 'maria.santos@nwssu.edu.ph',
-      role: 'Staff',
-      status: 'Active',
-      lastLogin: 'Jun 14, 2026 08:15 AM'
-    },
-    {
-      id: 3,
-      name: 'Pedro Reyes',
-      email: 'pedro.reyes@nwssu.edu.ph',
-      role: 'Administrator',
-      status: 'Active',
-      lastLogin: 'Jun 13, 2026 04:45 PM'
-    },
-    {
-      id: 4,
-      name: 'Ana Garcia',
-      email: 'ana.garcia@nwssu.edu.ph',
-      role: 'Staff',
-      status: 'Active',
-      lastLogin: 'Jun 13, 2026 02:20 PM'
-    },
-    {
-      id: 5,
-      name: 'Carlos Mendoza',
-      email: 'carlos.mendoza@nwssu.edu.ph',
-      role: 'Staff',
-      status: 'Inactive',
-      lastLogin: 'Jun 10, 2026 10:00 AM'
-    }
   ];
 
   const statuses = ['All', 'Active', 'Inactive'];
@@ -109,9 +90,10 @@ const ManageUser = () => {
   const filteredUsers = users.filter((user) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
-      user.name.toLowerCase().includes(query) ||
+      user.fname.toLowerCase().includes(query) ||
+      user.mname.toLowerCase().includes(query) ||
+      user.lname.toLowerCase().includes(query) ||
       user.email.toLowerCase().includes(query) ||
-      user.role.toLowerCase().includes(query) ||
       user.status.toLowerCase().includes(query);
     
     const matchesStatus = selectedStatus === 'All' || user.status === selectedStatus;
@@ -129,6 +111,29 @@ const ManageUser = () => {
     setSelectedStaff(null);
   };
 
+  const handleStaffUpdated = () => {
+    // Refresh staff data after update
+    fetchStaffData();
+  };
+
+  const handleDeleteClick = async (staffId, staffName) => {
+    if (!confirm(`Are you sure you want to delete ${staffName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await deleteStaff(staffId);
+      console.log("✅ Staff deleted:", response);
+      alert(response.message || "Staff member deleted successfully!");
+      
+      // Refresh the list
+      fetchStaffData();
+    } catch (err) {
+      console.error("❌ Error deleting staff:", err);
+      alert(err.message || "Failed to delete staff member");
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full">
@@ -139,21 +144,41 @@ const ManageUser = () => {
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-3xl font-light text-gray-900">Staff Management</h1>
 
-              {/* Search Bar */}
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search users..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-white"
-                />
+              <div className="flex gap-2 items-center">
+                {/* Refresh Button */}
+                <Button
+                  onClick={fetchStaffData}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  disabled={loading}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+
+                {/* Search Bar */}
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search users..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-white"
+                  />
+                </div>
               </div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600">{error}</p>
+              </div>
+            )}
+
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6 mb-8">
               {stats.map((stat, index) => (
                 <Card key={index} className="bg-white shadow-sm rounded-2xl">
                   <CardContent className="p-6">
@@ -178,7 +203,9 @@ const ManageUser = () => {
                   <h2 className="text-xl font-semibold text-gray-900">Staff Accounts</h2>
                   <Button className="bg-[#15592F] hover:bg-[#124b28] text-white flex items-center gap-2">
                     <Plus className="w-4 h-4" />
-                    Add New User
+                    <Link to="/add-staff">
+                    Add New Staff
+                    </Link>
                   </Button>
                 </div>
 
@@ -203,66 +230,73 @@ const ManageUser = () => {
 
                 {/* Table */}
                 <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Last Login</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.length === 0 ? (
+                  {loading ? (
+                    <div className="text-center py-12">
+                      <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-500">Loading staff data...</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-12">
-                            <Users className="w-12 h-12 mx-auto mb-2 opacity-30 text-gray-400" />
-                            <p className="text-sm text-gray-400">
-                              {searchQuery ? 'No users found matching your search.' : 'No users found. Add a new user to get started.'}
-                            </p>
-                          </TableCell>
+                          <TableHead>Staff ID</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
-                      ) : (
-                        filteredUsers.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell className="font-medium">{user.name}</TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>{user.role}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={user.status === 'Active' ? 'default' : 'destructive'}
-                                className={user.status === 'Active' ? 'bg-green-600' : ''}
-                              >
-                                {user.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{user.lastLogin}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                  onClick={() => handleEditClick(user)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-12">
+                              <Users className="w-12 h-12 mx-auto mb-2 opacity-30 text-gray-400" />
+                              <p className="text-sm text-gray-400">
+                                {searchQuery ? 'No users found matching your search.' : 'No users found. Add a new user to get started.'}
+                              </p>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          filteredUsers.map((user) => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.staff_id}</TableCell>
+                              <TableCell className="font-medium">{`${user.fname} ${user.mname || ''} ${user.lname}`}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={user.status === 'Active' ? 'default' : 'destructive'}
+                                  className={user.status === 'Active' ? 'bg-green-600' : ''}
+                                >
+                                  {user.status || 'Active'}
+                                </Badge>
+                              </TableCell>
+                            
+                              <TableCell>
+                                <div className="flex items-center">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    onClick={() => handleEditClick(user)}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => handleDeleteClick(user.id, `${user.fname} ${user.lname}`)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -275,6 +309,7 @@ const ManageUser = () => {
         isOpen={isDialogOpen}
         onClose={handleCloseDialog}
         staff={selectedStaff}
+        onStaffUpdated={handleStaffUpdated}
       />
     </SidebarProvider>
   );
