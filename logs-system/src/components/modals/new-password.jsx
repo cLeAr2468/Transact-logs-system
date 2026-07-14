@@ -21,14 +21,16 @@ export default function CreateNewPasswordDialog({
   onOpenChange,
   onBack,
   onSuccess,
+  password,
+  setPassword,
+  confirmPassword,
+  setConfirmPassword,
+  loading = false,
 }) {
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const hasLength = password.length >= 8;
+  const hasLength = password.length >= 6;
   const hasUppercase = /[A-Z]/.test(password);
   const hasSpecial = /[0-9!@#$%^&*(),.?":{}|<>]/.test(password);
 
@@ -47,9 +49,6 @@ export default function CreateNewPasswordDialog({
     password === confirmPassword;
 
   const handleResetPassword = () => {
-    // Add your password reset logic here
-    console.log("Resetting password...");
-    
     if (onSuccess) {
       onSuccess();
     } else {
@@ -110,6 +109,7 @@ export default function CreateNewPasswordDialog({
                 className="h-12 pl-11 pr-12 rounded-xl border-2 focus-visible:ring-green-700"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
               />
 
               <button
@@ -169,6 +169,7 @@ export default function CreateNewPasswordDialog({
                 onChange={(e) =>
                   setConfirmPassword(e.target.value)
                 }
+                disabled={loading}
               />
 
               <div className="absolute right-3 top-3.5 flex items-center gap-2">
@@ -220,7 +221,7 @@ export default function CreateNewPasswordDialog({
                       : "text-gray-300"
                   }
                 />
-                <span>At least 8 characters</span>
+                <span>At least 6 characters</span>
               </div>
 
               <div className="flex items-center gap-2.5">
@@ -255,11 +256,20 @@ export default function CreateNewPasswordDialog({
           {/* Button */}
           <Button
             onClick={handleResetPassword}
-            disabled={!passwordsMatch || score < 3}
+            disabled={loading || !passwordsMatch || score < 3}
             className="h-14 w-full rounded-xl bg-green-700 text-base font-semibold hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Lock className="mr-2 h-5 w-5" />
-            Reset Password
+            {loading ? (
+              <>
+                <span className="mr-2">Resetting...</span>
+                <span className="animate-spin">⏳</span>
+              </>
+            ) : (
+              <>
+                <Lock className="mr-2 h-5 w-5" />
+                Reset Password
+              </>
+            )}
           </Button>
 
           {/* Divider */}
@@ -276,7 +286,8 @@ export default function CreateNewPasswordDialog({
           {/* Back */}
           <button 
             onClick={handleBack}
-            className="flex w-full items-center justify-center gap-2 py-2 text-sm font-semibold text-green-700 hover:underline"
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 py-2 text-sm font-semibold text-green-700 hover:underline disabled:opacity-50"
           >
             <ArrowLeft size={18} />
             Back to Login

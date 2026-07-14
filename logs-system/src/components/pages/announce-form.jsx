@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Upload,
-  Plus,
-  NotepadTextDashed,
+  ArrowLeft,
+  CheckIcon,
+  Loader2,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,13 +22,100 @@ import {
 } from "@/components/ui/select";
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
+import { createAnnouncement } from '@/api/announcementApi';
+import { toast } from "sonner";
 
 export default function Announcement() {
+  const navigate = useNavigate();
   const [image, setImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleImageChange = (e) => {
     if (e.target.files[0]) {
+      setImageFile(e.target.files[0]);
       setImage(URL.createObjectURL(e.target.files[0]));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validation
+    if (!title.trim()) {
+      toast.error("Please enter announcement title");
+      return;
+    }
+    if (!content.trim()) {
+      toast.error("Please enter announcement content");
+      return;
+    }
+    if (!status) {
+      toast.error("Please select status");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('content', content);
+      formData.append('status', status);
+      
+      if (imageFile) {
+        formData.append('cover_image', imageFile);
+      }
+
+      const response = await createAnnouncement(formData);
+      
+      toast.success(response.message || 'Announcement created successfully!');
+      
+      // Navigate back to announcements page after short delay
+      setTimeout(() => {
+        navigate('/announce');
+      }, 1000);
+      
+    } catch (err) {
+      console.error("Failed to create announcement:", err);
+      toast.error(err.message || "Failed to create announcement");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (title || content || image) {
+      toast.warning(
+        <div>
+          <p className="font-semibold">Cancel Announcement?</p>
+          <p className="text-sm">All unsaved changes will be lost.</p>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => {
+                navigate('/announce');
+                toast.dismiss();
+              }}
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+            >
+              Yes, Cancel
+            </button>
+            <button
+              onClick={() => toast.dismiss()}
+              className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+            >
+              No, Continue
+            </button>
+          </div>
+        </div>,
+        { duration: 10000 }
+      );
+    } else {
+      navigate('/announce');
     }
   };
 
@@ -48,32 +137,35 @@ export default function Announcement() {
                     {/* Title */}
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Announcement Title
+                        Announcement Title <span className="text-red-500">*</span>
                       </label>
 
                       <Input
                         placeholder="Enter title here..."
                         className="h-11"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        disabled={loading}
                       />
                     </div>
 
-                    {/* Audience */}
-                    <div>
+                    {/* Status Select */}
+                    <div> 
                       <label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Target Audience
+                        Status <span className="text-red-500">*</span>
                       </label>
 
-                      <Select>
-                        <SelectTrigger className="w-[220px] h-11">
-                          <SelectValue placeholder="Select Audience" />
-                        </SelectTrigger>
+                      <Select value={status} onValueChange={setStatus} disabled={loading}>
+  <SelectTrigger className="w-[220px] h-11">
+    <SelectValue placeholder="Select Status" />
+  </SelectTrigger>
 
-                        <SelectContent>
-                          <SelectItem value="All Students">All Students</SelectItem>
-                          <SelectItem value="Staff & Faculty">Staff & Faculty</SelectItem>
-                          <SelectItem value="Entire Campus">Entire Campus</SelectItem>
-                        </SelectContent>
-                      </Select>
+  <SelectContent>
+    <SelectItem value="archive">Archive</SelectItem>
+    <SelectItem value="draft">Draft</SelectItem>
+    <SelectItem value="published">Published</SelectItem>
+  </SelectContent>
+</Select>
                     </div>
                   </div>
 
@@ -116,6 +208,7 @@ export default function Announcement() {
                       hidden
                       accept="image/*"
                       onChange={handleImageChange}
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -123,7 +216,7 @@ export default function Announcement() {
                 {/* Content Editor */}
                 <div className="mt-6">
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Content
+                    Content <span className="text-red-500">*</span>
                   </label>
 
                   
@@ -131,7 +224,10 @@ export default function Announcement() {
                     {/* Editor */}
                     <textarea
                       placeholder="Write announcement details here..."
-                      className="w-full h-[230px] resize-none border-0 focus:outline-none focus:ring-0 p-4 text-sm"
+                      className="w-full h-[230px] resize-none border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 p-4 text-sm"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -146,22 +242,32 @@ export default function Announcement() {
                   <Button
                     variant="secondary"
                     className="px-8"
+                    onClick={handleCancel}
+                    disabled={loading}
+                    type="button"
                   >
-                    Cancel
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
                   </Button>
 
                   <div className="flex gap-3">
                     <Button
-                      variant="outline"
-                      className="px-8"
+                      className="px-8 bg-[#15592F] hover:bg-[#124b28]"
+                      onClick={handleSubmit}
+                      disabled={loading}
+                      type="button"
                     >
-                      <NotepadTextDashed />
-                      Save as Draft
-                    </Button>
-
-                    <Button className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold px-8">
-                      <Plus className="w-4 h-4 mr-2" />
-                      PUBLISH ANNOUNCEMENT
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CheckIcon className="mr-2 h-4 w-4" />
+                          Save Announcement
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>

@@ -5,50 +5,222 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Image1 from "@/assets/login.png";
 import Image2 from "@/assets/nwssu 1.png";
 import { useState } from "react";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import ForgotPass from "@/components/modals/forgot-pass";
 import VerifyOtpDialog from "@/components/modals/otp-dialog";
 import CreateNewPasswordDialog from "@/components/modals/new-password";
+import { adminLogin, forgotPassword, verifyOtp, resendOtp, resetPassword } from "@/api/adminApi";
+import { toast } from "sonner";
 
 function Login() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [showNewPasswordDialog, setShowNewPasswordDialog] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleForgotSubmit = () => {
-    // Replace with your actual forgot password logic
-    console.log("Send reset code to:", forgotEmail);
-    
-    // Close forgot password dialog and open OTP dialog
-    setShowForgotPassword(false);
-    setShowOtpDialog(true);
+  // Login form state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Forgot password states
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!email.trim()) {
+      setError("Please enter your email");
+      return;
+    }
+    if (!password) {
+      setError("Please enter your password");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await adminLogin({ email, password });
+
+      const responseData = response?.data ?? response;
+      const token =
+        responseData?.token ||
+        responseData?.access_token ||
+        response?.token ||
+        response?.access_token;
+
+      const userData =
+        responseData?.user ||
+        responseData?.admin ||
+        responseData?.data?.user ||
+        responseData?.data?.admin ||
+        responseData?.data ||
+        responseData;
+
+      const roleValue =
+        userData?.role ||
+        userData?.user_role ||
+        userData?.accountType ||
+        userData?.userRole ||
+        responseData?.role ||
+        responseData?.user_role ||
+        responseData?.accountType ||
+        responseData?.userRole;
+
+      if (!token) {
+        throw new Error("No authentication token returned from server.");
+      }
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("admin_token", token);
+
+      localStorage.setItem("user", JSON.stringify(userData ?? {}));
+      localStorage.setItem("admin_user", JSON.stringify(userData ?? {}));
+
+      if (roleValue) {
+        localStorage.setItem("role", String(roleValue));
+        localStorage.setItem("userRole", String(roleValue));
+      }
+
+      localStorage.setItem("isLoggedIn", "true");
+
+      if (rememberMe) {
+        localStorage.setItem("remember_admin", "true");
+      } else {
+        localStorage.removeItem("remember_admin");
+      }
+
+      toast.success(response?.message || "Login successful!");
+
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      console.error("❌ Login failed:", err);
+      setError(err.message || "Invalid email or password");
+      toast.error(err.message || "Invalid email or password");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleOtpVerify = () => {
-    // OTP verified successfully, close OTP dialog and open new password dialog
-    console.log("OTP verified successfully");
-    setShowOtpDialog(false);
-    setShowNewPasswordDialog(true);
+  const handleForgotSubmit = async () => {
+    if (!forgotEmail.trim()) {
+      toast.error("Please enter your email");
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const response = await forgotPassword(forgotEmail);
+      console.log("✅ OTP sent:", response.message);
+
+      toast.success(response.message || "OTP sent to your email");
+
+      setShowForgotPassword(false);
+      setShowOtpDialog(true);
+    } catch (err) {
+      console.error("❌ Failed to send OTP:", err);
+      toast.error(err.message || "Failed to send OTP");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleOtpVerify = async () => {
+    if (!otp || otp.length !== 6) {
+      toast.error("Please enter valid 6-digit OTP");
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      const response = await verifyOtp(forgotEmail, otp);
+      console.log("✅ OTP verified:", response.message);
+
+      toast.success("OTP verified successfully");
+
+      setShowOtpDialog(false);
+      setShowNewPasswordDialog(true);
+    } catch (err) {
+      console.error("❌ OTP verification failed:", err);
+      toast.error(err.message || "Invalid OTP");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleOtpResend = async () => {
+    try {
+      const response = await resendOtp(forgotEmail);
+      console.log("✅ OTP resent:", response.message);
+      toast.success("OTP resent to your email");
+      setOtp("");
+    } catch (err) {
+      console.error("❌ Failed to resend OTP:", err);
+      toast.error(err.message || "Failed to resend OTP");
+    }
   };
 
   const handleOtpBack = () => {
-    // Close OTP dialog and go back to login
     setShowOtpDialog(false);
+    setShowForgotPassword(true);
+    setOtp("");
   };
 
-  const handlePasswordSuccess = () => {
-    // Password reset successful, close all dialogs
-    console.log("Password reset successfully");
-    setShowNewPasswordDialog(false);
-    // You can add a success message or redirect here
+  const handlePasswordSuccess = async () => {
+    if (!newPassword) {
+      toast.error("Please enter new password");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const response = await resetPassword(forgotEmail, otp, newPassword, confirmPassword);
+      console.log("✅ Password reset successful:", response.message);
+
+      toast.success("Password reset successfully!");
+
+      setShowNewPasswordDialog(false);
+      setForgotEmail("");
+      setOtp("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      console.error("❌ Password reset failed:", err);
+      toast.error(err.message || "Failed to reset password");
+    } finally {
+      setResetLoading(false);
+    }
   };
 
-  const handlePasswordBack = () => {
-    // Close new password dialog and go back to login
+  const handleBackToLogin = () => {
+    setShowForgotPassword(false);
+    setShowOtpDialog(false);
     setShowNewPasswordDialog(false);
+    setForgotEmail("");
+    setOtp("");
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   return (
@@ -57,7 +229,6 @@ function Login() {
       <div className="flex flex-1 items-center justify-center bg-gray-100 p-4 lg:hidden">
         <Card className="w-full max-w-md rounded-2xl border border-gray-300 shadow-sm">
           <CardContent className="p-6">
-            {/* Header - Mobile */}
             <div className="mb-6 flex flex-col items-center">
               <img
                 src="/user.jpg"
@@ -67,7 +238,12 @@ function Login() {
               <h2 className="text-xl font-bold">Login</h2>
             </div>
 
-            {/* Email Field - Mobile */}
+            {error && (
+              <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3">
+                <p className="text-sm text-red-600 font-medium">{error}</p>
+              </div>
+            )}
+
             <div className="mb-4">
               <label className="mb-2 block text-sm font-medium">Email</label>
               <div className="relative">
@@ -79,11 +255,16 @@ function Login() {
                   type="email"
                   placeholder="admin@nwssu.edu.ph"
                   className="h-10 pl-10"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError("");
+                  }}
+                  disabled={loading}
                 />
               </div>
             </div>
 
-            {/* Password Field - Mobile */}
             <div className="mb-4">
               <label className="mb-2 block text-sm font-medium">Password</label>
               <div className="relative">
@@ -95,6 +276,12 @@ function Login() {
                   type={showPassword ? "text" : "password"}
                   placeholder="********"
                   className="h-10 pl-10 pr-10"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError("");
+                  }}
+                  disabled={loading}
                 />
                 {showPassword ? (
                   <EyeOff
@@ -112,10 +299,13 @@ function Login() {
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password - Mobile */}
             <div className="mb-5 flex items-start justify-between">
               <div className="flex items-center space-x-2">
-                <Checkbox id="remember-mobile" />
+                <Checkbox
+                  id="remember-mobile"
+                  checked={rememberMe}
+                  onCheckedChange={setRememberMe}
+                />
                 <label htmlFor="remember-mobile" className="text-sm">
                   Remember me
                 </label>
@@ -130,15 +320,20 @@ function Login() {
               </button>
             </div>
 
-            {/* Login Button & Register Link - Mobile */}
             <div className="flex flex-col items-center gap-3">
               <Button
                 className="h-10 w-full bg-green-800 hover:bg-green-900"
-                onClick={() => (window.location.href = "/dashboard")}
+                onClick={handleLogin}
+                disabled={loading}
               >
-                <Link to="/dashboard" className="w-full text-center">
-                  Login
-                </Link>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  "Login"
+                )}
               </Button>
               <p className="text-sm">
                 Don't have an account?{" "}
@@ -157,27 +352,35 @@ function Login() {
           setEmail={setForgotEmail}
           onSubmit={handleForgotSubmit}
           onBack={() => setShowForgotPassword(false)}
+          loading={forgotLoading}
         />
 
         <VerifyOtpDialog
           open={showOtpDialog}
           onOpenChange={setShowOtpDialog}
           email={forgotEmail}
+          otp={otp}
+          setOtp={setOtp}
           onBack={handleOtpBack}
           onVerify={handleOtpVerify}
+          onResend={handleOtpResend}
+          loading={otpLoading}
         />
 
         <CreateNewPasswordDialog
           open={showNewPasswordDialog}
           onOpenChange={setShowNewPasswordDialog}
-          onBack={handlePasswordBack}
+          password={newPassword}
+          setPassword={setNewPassword}
+          confirmPassword={confirmPassword}
+          setConfirmPassword={setConfirmPassword}
+          onBack={handleBackToLogin}
           onSuccess={handlePasswordSuccess}
+          loading={resetLoading}
         />
       </div>
 
-      {/* DESKTOP VIEW - Split screen layout */}
       <div className="hidden min-h-screen lg:flex lg:flex-row">
-        {/* LEFT SIDE - Background with logo */}
         <div className="relative flex w-1/2">
           <img
             src={Image1}
@@ -196,11 +399,9 @@ function Login() {
           </div>
         </div>
 
-        {/* RIGHT SIDE - Login form */}
         <div className="flex w-1/2 items-center justify-center bg-gray-100 p-6">
           <Card className="w-full max-w-md rounded-2xl border border-gray-300 shadow-sm">
             <CardContent className="p-10">
-              {/* Header - Desktop */}
               <div className="mb-8 flex flex-col items-center">
                 <img
                   src="/user.jpg"
@@ -210,7 +411,12 @@ function Login() {
                 <h2 className="text-[24px] font-bold">Login</h2>
               </div>
 
-              {/* Email Field - Desktop */}
+              {error && (
+                <div className="mb-5 rounded-lg bg-red-50 border border-red-200 p-3">
+                  <p className="text-sm text-red-600 font-medium">{error}</p>
+                </div>
+              )}
+
               <div className="mb-5">
                 <label className="mb-2 block text-sm font-medium">Email</label>
                 <div className="relative">
@@ -222,11 +428,16 @@ function Login() {
                     type="email"
                     placeholder="admin@nwssu.edu.ph"
                     className="h-11 pl-10"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setError("");
+                    }}
+                    disabled={loading}
                   />
                 </div>
               </div>
 
-              {/* Password Field - Desktop */}
               <div className="mb-5">
                 <label className="mb-2 block text-sm font-medium">Password</label>
                 <div className="relative">
@@ -238,6 +449,12 @@ function Login() {
                     type={showPassword ? "text" : "password"}
                     placeholder="********"
                     className="h-11 pl-10 pr-10"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError("");
+                    }}
+                    disabled={loading}
                   />
                   {showPassword ? (
                     <EyeOff
@@ -255,10 +472,13 @@ function Login() {
                 </div>
               </div>
 
-              {/* Remember Me & Forgot Password - Desktop */}
               <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="remember-desktop" />
+                  <Checkbox
+                    id="remember-desktop"
+                    checked={rememberMe}
+                    onCheckedChange={setRememberMe}
+                  />
                   <label htmlFor="remember-desktop" className="text-sm">
                     Remember me
                   </label>
@@ -273,15 +493,20 @@ function Login() {
                 </button>
               </div>
 
-              {/* Login Button & Register Link - Desktop */}
               <div className="flex flex-col items-center gap-3">
                 <Button
                   className="h-11 w-full bg-green-800 hover:bg-green-900"
-                  onClick={() => (window.location.href = "/dashboard")}
+                  onClick={handleLogin}
+                  disabled={loading}
                 >
-                <Link to="/dashboard" className="w-full text-center">
-                  Login
-                </Link>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : (
+                    "Login"
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -294,21 +519,31 @@ function Login() {
             setEmail={setForgotEmail}
             onSubmit={handleForgotSubmit}
             onBack={() => setShowForgotPassword(false)}
+            loading={forgotLoading}
           />
 
           <VerifyOtpDialog
             open={showOtpDialog}
             onOpenChange={setShowOtpDialog}
             email={forgotEmail}
+            otp={otp}
+            setOtp={setOtp}
             onBack={handleOtpBack}
             onVerify={handleOtpVerify}
+            onResend={handleOtpResend}
+            loading={otpLoading}
           />
 
           <CreateNewPasswordDialog
             open={showNewPasswordDialog}
             onOpenChange={setShowNewPasswordDialog}
-            onBack={handlePasswordBack}
+            password={newPassword}
+            setPassword={setNewPassword}
+            confirmPassword={confirmPassword}
+            setConfirmPassword={setConfirmPassword}
+            onBack={handleBackToLogin}
             onSuccess={handlePasswordSuccess}
+            loading={resetLoading}
           />
         </div>
       </div>

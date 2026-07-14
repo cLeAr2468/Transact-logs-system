@@ -36,7 +36,7 @@ const items = [
     title: "Staff",
     url: "/manage-users",
     icon: Users,
-    relatedRoutes: [],
+    relatedRoutes: ["/add-staff"],
   },
   {
     title: "Client",
@@ -44,11 +44,11 @@ const items = [
     icon: UserCheckIcon,
     relatedRoutes: ["/Client-register"],
   },
-    {
+  {
     title: "Master list",
     url: "/master-list",
     icon: UserCheckIcon,
-    relatedRoutes: ["/master-list"],
+    relatedRoutes: ["/add-manual"],
   },
   {
     title: "Transaction",
@@ -73,7 +73,43 @@ const items = [
 export function AppSidebar() {
   const location = useLocation();
 
-  // Check if current route matches the item or any of its related routes
+  const getUserRole = () => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        const roleValue =
+          parsedUser?.role ||
+          parsedUser?.user_role ||
+          parsedUser?.accountType ||
+          parsedUser?.userRole;
+
+        if (roleValue) {
+          return String(roleValue).toLowerCase();
+        }
+      }
+
+      const storedRole = localStorage.getItem("role");
+      if (storedRole) return String(storedRole).toLowerCase();
+
+      const storedUserRole = localStorage.getItem("userRole");
+      if (storedUserRole) return String(storedUserRole).toLowerCase();
+    } catch {
+      // ignore
+    }
+
+    return "";
+  };
+
+  const role = getUserRole();
+
+  const visibleItems = items.filter((item) => {
+    if (item.title === "Staff" && ["staff", "employee", "user"].includes(role)) {
+      return false;
+    }
+    return true;
+  });
+
   const isActiveRoute = (item) => {
     const currentPath = location.pathname;
     return currentPath === item.url || item.relatedRoutes.includes(currentPath);
@@ -81,14 +117,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-none">
-      {/* Header */}
       <SidebarHeader className="bg-[#15592F] text-white p-4">
         <div className="flex items-center gap-3">
-          <img
-            src={Logo}
-            alt="logo"
-            className="w-16 h-16 object-contain"
-          />
+          <img src={Logo} alt="logo" className="w-16 h-16 object-contain" />
 
           <div>
             <h1 className="text-[11px] font-bold leading-tight uppercase">
@@ -102,12 +133,11 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* Content */}
       <SidebarContent className="bg-[#15592F]">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => {
+              {visibleItems.map((item) => {
                 const isActive = isActiveRoute(item);
 
                 return (
@@ -115,11 +145,11 @@ export function AppSidebar() {
                     <NavLink to={item.url}>
                       <SidebarMenuButton
                         className={`h-16 rounded-none px-5 text-[15px] flex items-center gap-3 cursor-pointer w-full
-                        
-                        ${isActive
+                        ${
+                          isActive
                             ? "bg-yellow-500 text-black hover:bg-yellow-500 hover:text-black"
                             : "text-white hover:bg-white/10 hover:text-white"
-                          }`}
+                        }`}
                       >
                         <item.icon className="w-6 h-6 shrink-0" />
                         <span>{item.title}</span>
@@ -133,15 +163,13 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer */}
       <SidebarFooter className="bg-[#15592F] p-4 border-t border-white/20 h-14 flex">
         <Link to="/">
           <SidebarMenuButton className="h-14 text-white hover:bg-white/10 hover:text-white flex items-center gap-3 justify-start px-3">
-          <div className="w-fullh-6 shrink-0 flex items-center justify-center gap-3 mb-6">
-            <LogOut className="w-6 h-6 shrink-0" />
-
-            <span className="text-[18px]">Log out</span>
-          </div>
+            <div className="w-full h-6 shrink-0 flex items-center justify-center gap-3 mb-6">
+              <LogOut className="w-6 h-6 shrink-0" />
+              <span className="text-[18px]">Log out</span>
+            </div>
           </SidebarMenuButton>
         </Link>
       </SidebarFooter>

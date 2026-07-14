@@ -17,7 +17,15 @@ export default function ForgotPasswordDialog({
   setEmail,
   onSubmit,
   onBack,
+  loading = false,
 }) {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (onSubmit) {
+      onSubmit();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -52,7 +60,7 @@ export default function ForgotPasswordDialog({
           </DialogHeader>
 
           {/* Form */}
-          <div className="mt-8 space-y-6">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
 
             <div className="space-y-2">
               <Label className="font-semibold">
@@ -78,13 +86,16 @@ export default function ForgotPasswordDialog({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-12 rounded-xl pl-12"
+                  disabled={loading}
+                  required
                 />
               </div>
             </div>
 
             {/* Button */}
             <Button
-              onClick={onSubmit}
+              type="submit"
+              disabled={loading || !email}
               className="
                 h-12
                 w-full
@@ -92,10 +103,21 @@ export default function ForgotPasswordDialog({
                 bg-green-700
                 text-white
                 hover:bg-green-800
+                disabled:opacity-50
+                disabled:cursor-not-allowed
               "
             >
-              <Send className="mr-2 h-4 w-4" />
-              Send Code
+              {loading ? (
+                <>
+                  <span className="mr-2">Sending...</span>
+                  <span className="animate-spin">⏳</span>
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Code
+                </>
+              )}
             </Button>
 
             {/* Divider */}
@@ -111,7 +133,9 @@ export default function ForgotPasswordDialog({
 
             {/* Back */}
             <button
+              type="button"
               onClick={onBack}
+              disabled={loading}
               className="
                 mx-auto
                 flex
@@ -122,13 +146,14 @@ export default function ForgotPasswordDialog({
                 text-green-700
                 transition
                 hover:text-green-800
+                disabled:opacity-50
               "
             >
               <ArrowLeft size={16} />
               Back to Login
             </button>
 
-          </div>
+          </form>
         </div>
       </DialogContent>
     </Dialog>

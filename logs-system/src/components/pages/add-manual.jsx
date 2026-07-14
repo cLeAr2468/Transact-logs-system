@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../../api";
+import { createMasterlistEntry } from "../../api/masterlistApi";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +24,7 @@ import {
 import {
   User,
   Mail,
-  Lock,
+  Plus,
   GraduationCap,
   School,
   IdCard,
@@ -32,7 +32,7 @@ import {
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
 
-function Register() {
+function AddManual() {
   const [form, setForm] = useState({
     student_id: "",
     fname: "",
@@ -41,7 +41,6 @@ function Register() {
     email: "",
     course: "",
     year_level: "",
-    password: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -59,11 +58,11 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await api.post("/register", form);
+      const response = await createMasterlistEntry(form);
 
-      console.log(response.data);
+      console.log(response);
 
-      alert("Registered successfully!");
+      alert("Student added to masterlist successfully!");
 
       setForm({
         student_id: "",
@@ -73,16 +72,15 @@ function Register() {
         email: "",
         course: "",
         year_level: "",
-        password: "",
       });
 
-      window.location.href = "/Client-register";
+      window.location.href = "/master-list";
     } catch (error) {
-      console.error(error.response?.data);
+      console.error(error);
 
       alert(
-        error.response?.data?.message ||
-          "Registration failed. Please try again."
+        error.message ||
+          "Failed to add student to masterlist. Please try again."
       );
     } finally {
       setLoading(false);
@@ -98,19 +96,17 @@ function Register() {
             <Card className="w-full border-0 shadow-lg">
               <CardHeader className="border-b bg-muted/30">
                 <CardTitle className="text-2xl font-bold">
-                  Client Registration
+                  Add Manual Master List
           </CardTitle>
 
           <CardDescription>
-            Fill in the client information below to create an account.
+            Fill in the  information below to add new master list.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="p-6">
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              {/* Student ID */}
-              <div className="space-y-2">
+             <div className="space-y-2 mb-4">
                 <Label htmlFor="student_id">Student ID</Label>
 
                 <div className="relative">
@@ -126,25 +122,9 @@ function Register() {
                   />
                 </div>
               </div>
-
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="student@example.com"
-                    value={form.email}
-                    onChange={handleChange}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {/* Student ID */}
+             
 
               {/* First Name */}
               <div className="space-y-2">
@@ -163,6 +143,8 @@ function Register() {
                   />
                 </div>
               </div>
+
+
 
               {/* Middle Name */}
               <div className="space-y-2">
@@ -192,6 +174,24 @@ function Register() {
                     id="lname"
                     placeholder="Doe"
                     value={form.lname}
+                    onChange={handleChange}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="student@example.com"
+                    value={form.email}
                     onChange={handleChange}
                     className="pl-10"
                     required
@@ -281,31 +281,12 @@ function Register() {
                 </Select>
               </div>
 
-              {/* Password */}
-              <div className="space-y-2 md:col-span-1">
-                <Label htmlFor="password">Password</Label>
-
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Minimum 6 characters"
-                    value={form.password}
-                    onChange={handleChange}
-                    className="pl-10"
-                    minLength={6}
-                    required
-                  />
-                </div>
-              </div>
             </div>
 
             <div className="mt-8 flex justify-end">
-              <Button className="bg-white text-[#15592F] border border-[#15592F] hover:bg-[#124b28] hover:text-white flex items-center gap-2">
+              <Button className="bg-white text-[#15592F] border border-[#15592F] hover:bg-[#124b28] hover:text-white flex items-center gap-2 cursor-pointer">
                 <ArrowLeft size={16} />
-                <Link to="/manage-client">
+                <Link to="/master-list">
                   Back
                 </Link>
               </Button>
@@ -314,7 +295,8 @@ function Register() {
                 disabled={loading}
                 className="min-width:180px bg-[#15592F] hover:bg-[#124b28] text-white flex items-center gap-2 ml-4 cursor-pointer"
               >
-                {loading ? "Registering..." : "Register Student"}
+                <Plus size={16} />
+                {loading ? "Registering..." : "Add Manual"}
               </Button>
             </div>
           </form>
@@ -327,4 +309,4 @@ function Register() {
   );
 }
 
-export default Register;
+export default AddManual;
