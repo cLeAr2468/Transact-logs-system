@@ -72,8 +72,14 @@ const Dashboard = () => {
         const statsData = await statsRes.json();
         console.log('✅ Statistics Data:', statsData);
         setStatistics(statsData.statistics);
+        
+        // Check if there's data
+        if (statsData.statistics?.total_transactions === 0) {
+          console.warn('⚠️ No transactions found for this month/year');
+          toast.warning(`No data found for ${getMonthName(selectedMonth)} ${selectedYear}. Try selecting a different month.`);
+        }
       } else {
-        const errorData = await statsRes.json();
+        const errorData = await statsRes.json().catch(() => ({ message: 'Unknown error' }));
         console.error('❌ Statistics Error:', errorData);
         toast.error('Failed to load statistics: ' + (errorData.message || 'Unknown error'));
       }
@@ -81,18 +87,20 @@ const Dashboard = () => {
       if (transactionsRes.ok) {
         const transactionsData = await transactionsRes.json();
         console.log('✅ Transactions Data:', transactionsData);
-        setTransactions(transactionsData.transactions);
+        console.log('📊 Number of transactions:', transactionsData.transactions?.length || 0);
+        setTransactions(transactionsData.transactions || []);
       } else {
-        const errorData = await transactionsRes.json();
+        const errorData = await transactionsRes.json().catch(() => ({ message: 'Unknown error' }));
         console.error('❌ Transactions Error:', errorData);
       }
 
       if (performanceRes.ok) {
         const performanceResData = await performanceRes.json();
         console.log('✅ Performance Data:', performanceResData);
-        setPerformanceData(performanceResData.performance);
+        console.log('📊 Number of purposes:', performanceResData.performance?.length || 0);
+        setPerformanceData(performanceResData.performance || []);
       } else {
-        const errorData = await performanceRes.json();
+        const errorData = await performanceRes.json().catch(() => ({ message: 'Unknown error' }));
         console.error('❌ Performance Error:', errorData);
       }
 
@@ -120,6 +128,21 @@ const Dashboard = () => {
   ];
 
   const years = ['2024', '2025', '2026', '2027'];
+
+  // Set default to current month from system
+  useEffect(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    
+    console.log('📅 System Current Date:', now.toLocaleDateString());
+    console.log('📅 Current Month:', currentMonth);
+    console.log('📅 Current Year:', currentYear);
+    
+    // If you want to force a specific month/year for testing
+    // setSelectedMonth(1); // January
+    // setSelectedYear(2027);
+  }, []);
 
   const getMonthName = (monthValue) => {
     return months.find(m => m.value === monthValue)?.label || 'May';
