@@ -108,7 +108,39 @@ const Transaction = () => {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success(data.message || `Transaction ${newStatus} successfully!`);
+        // Find the transaction to get user email for display
+        const transaction = transactions.find(t => t.id === transactionId);
+        const userEmail = transaction?.user?.email || 'student';
+        
+        // Show success message with email notification info
+        if (newStatus === 'approved') {
+          toast.success(
+            <div>
+              <p className="font-semibold">✅ Appointment Approved!</p>
+              <p className="text-sm">Email notification sent to {userEmail}</p>
+            </div>,
+            { duration: 5000 }
+          );
+        } else if (newStatus === 'rejected') {
+          toast.success(
+            <div>
+              <p className="font-semibold">❌ Appointment Rejected</p>
+              <p className="text-sm">Email notification sent to {userEmail}</p>
+            </div>,
+            { duration: 5000 }
+          );
+        } else if (newStatus === 'completed') {
+          toast.success(
+            <div>
+              <p className="font-semibold">✅ Appointment Completed!</p>
+              <p className="text-sm">Email notification sent to {userEmail}</p>
+            </div>,
+            { duration: 5000 }
+          );
+        } else {
+          toast.success(data.message || `Transaction ${newStatus} successfully!`);
+        }
+        
         // Refresh transactions list
         fetchTransactions();
       } else {
@@ -124,10 +156,15 @@ const Transaction = () => {
 
   // Handle approve
   const handleApprove = (transactionId) => {
+    // Find the transaction to get user email
+    const transaction = transactions.find(t => t.id === transactionId);
+    const userEmail = transaction?.user?.email || 'the student';
+    
     toast.warning(
       <div>
         <p className="font-semibold">Approve this appointment?</p>
-        <p className="text-sm">The student will be notified via email.</p>
+        <p className="text-sm">📧 An email notification will be sent to:</p>
+        <p className="text-sm font-medium text-green-700">{userEmail}</p>
         <div className="flex gap-2 mt-3">
           <button
             onClick={() => {
@@ -136,7 +173,7 @@ const Transaction = () => {
             }}
             className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
           >
-            Approve
+            Approve & Send Email
           </button>
           <button
             onClick={() => toast.dismiss()}
@@ -156,10 +193,15 @@ const Transaction = () => {
 
   // Handle reject
   const handleReject = (transactionId) => {
+    // Find the transaction to get user email
+    const transaction = transactions.find(t => t.id === transactionId);
+    const userEmail = transaction?.user?.email || 'the student';
+    
     toast.warning(
       <div>
         <p className="font-semibold">Reject this appointment?</p>
-        <p className="text-sm">The student will be notified via email.</p>
+        <p className="text-sm">📧 An email notification will be sent to:</p>
+        <p className="text-sm font-medium text-red-700">{userEmail}</p>
         <div className="flex gap-2 mt-3">
           <button
             onClick={() => {
@@ -168,7 +210,7 @@ const Transaction = () => {
             }}
             className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
           >
-            Reject
+            Reject & Send Email
           </button>
           <button
             onClick={() => toast.dismiss()}
@@ -188,10 +230,15 @@ const Transaction = () => {
 
   // Handle complete
   const handleComplete = (transactionId) => {
+    // Find the transaction to get user email
+    const transaction = transactions.find(t => t.id === transactionId);
+    const userEmail = transaction?.user?.email || 'the student';
+    
     toast.warning(
       <div>
         <p className="font-semibold">Mark as completed?</p>
-        <p className="text-sm">The student will be notified via email.</p>
+        <p className="text-sm">📧 An email notification will be sent to:</p>
+        <p className="text-sm font-medium text-blue-700">{userEmail}</p>
         <div className="flex gap-2 mt-3">
           <button
             onClick={() => {
@@ -200,7 +247,7 @@ const Transaction = () => {
             }}
             className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
           >
-            Complete
+            Complete & Send Email
           </button>
           <button
             onClick={() => toast.dismiss()}

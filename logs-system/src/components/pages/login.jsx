@@ -121,6 +121,13 @@ function Login() {
       return;
     }
 
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(forgotEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
     setForgotLoading(true);
     try {
       const response = await forgotPassword(forgotEmail);
@@ -132,7 +139,19 @@ function Login() {
       setShowOtpDialog(true);
     } catch (err) {
       console.error("❌ Failed to send OTP:", err);
-      toast.error(err.message || "Failed to send OTP");
+      
+      // Handle email not found error
+      if (err.error === 'email_not_found' || err.message?.includes('not found') || err.message?.includes('register')) {
+        toast.error(
+          <div>
+            <p className="font-semibold">📧 Email Not Found</p>
+            <p className="text-sm mt-1">{err.message || 'This email is not registered. Please register first.'}</p>
+          </div>,
+          { duration: 5000 }
+        );
+      } else {
+        toast.error(err.message || "Failed to send OTP");
+      }
     } finally {
       setForgotLoading(false);
     }

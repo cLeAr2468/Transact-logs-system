@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { Lock, Mail, Send, ArrowLeft } from "lucide-react";
+import { Lock, Mail, Send, ArrowLeft, AlertCircle } from "lucide-react";
+import { useState } from "react";
 
 export default function ForgotPasswordDialog({
   open,
@@ -19,8 +20,44 @@ export default function ForgotPasswordDialog({
   onBack,
   loading = false,
 }) {
+  const [emailError, setEmailError] = useState("");
+
+  const validateEmail = (emailValue) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailValue.trim()) {
+      setEmailError("");
+      return false;
+    }
+    if (!emailRegex.test(emailValue)) {
+      setEmailError("Please enter a valid email address");
+      return false;
+    }
+    setEmailError("");
+    return true;
+  };
+
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setEmail(value);
+    if (value.trim()) {
+      validateEmail(value);
+    } else {
+      setEmailError("");
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      return;
+    }
+    
+    if (!validateEmail(email)) {
+      return;
+    }
+    
     if (onSubmit) {
       onSubmit();
     }
@@ -84,18 +121,25 @@ export default function ForgotPasswordDialog({
                   type="email"
                   placeholder="Enter your email address"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 rounded-xl pl-12"
+                  onChange={handleEmailChange}
+                  className={`h-12 rounded-xl pl-12 ${emailError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   disabled={loading}
                   required
                 />
               </div>
+              
+              {emailError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{emailError}</span>
+                </div>
+              )}
             </div>
 
             {/* Button */}
             <Button
               type="submit"
-              disabled={loading || !email}
+              disabled={loading || !email || !!emailError}
               className="
                 h-12
                 w-full
