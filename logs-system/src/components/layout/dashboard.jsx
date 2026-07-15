@@ -16,7 +16,6 @@ import { AppSidebar } from './Asidebar';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
-  // Current date: January 2027 based on system prompt
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // Current month
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear()); // Current year
   const [loading, setLoading] = useState(true);
@@ -25,14 +24,6 @@ const Dashboard = () => {
   const [performanceData, setPerformanceData] = useState([]);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://logs-server-system-production.up.railway.app/api';
-
-  // Debug: Log initial month and year
-  useEffect(() => {
-    console.log('🗓️ Initial Dashboard State:');
-    console.log('  Month:', selectedMonth);
-    console.log('  Year:', selectedYear);
-    console.log('  API URL:', API_BASE_URL);
-  }, []);
 
   useEffect(() => {
     fetchDashboardData();
@@ -43,14 +34,9 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('admin_token');
       if (!token) {
-        console.error('❌ No admin token found');
-        toast.error('Authentication required. Please login again.');
+        toast.error('Authentication required');
         return;
       }
-
-      console.log('🔵 Fetching dashboard data...');
-      console.log('📅 Month:', selectedMonth, 'Year:', selectedYear);
-      console.log('🔑 Token:', token.substring(0, 20) + '...');
 
       const headers = {
         'Authorization': `Bearer ${token}`,
@@ -64,49 +50,24 @@ const Dashboard = () => {
         fetch(`${API_BASE_URL}/admin/dashboard/performance?month=${selectedMonth}&year=${selectedYear}`, { headers })
       ]);
 
-      console.log('📊 Statistics Response:', statsRes.status, statsRes.ok);
-      console.log('📋 Transactions Response:', transactionsRes.status, transactionsRes.ok);
-      console.log('📈 Performance Response:', performanceRes.status, performanceRes.ok);
-
       if (statsRes.ok) {
         const statsData = await statsRes.json();
-        console.log('✅ Statistics Data:', statsData);
         setStatistics(statsData.statistics);
-        
-        // Check if there's data
-        if (statsData.statistics?.total_transactions === 0) {
-          console.warn('⚠️ No transactions found for this month/year');
-          toast.warning(`No data found for ${getMonthName(selectedMonth)} ${selectedYear}. Try selecting a different month.`);
-        }
-      } else {
-        const errorData = await statsRes.json().catch(() => ({ message: 'Unknown error' }));
-        console.error('❌ Statistics Error:', errorData);
-        toast.error('Failed to load statistics: ' + (errorData.message || 'Unknown error'));
       }
 
       if (transactionsRes.ok) {
         const transactionsData = await transactionsRes.json();
-        console.log('✅ Transactions Data:', transactionsData);
-        console.log('📊 Number of transactions:', transactionsData.transactions?.length || 0);
-        setTransactions(transactionsData.transactions || []);
-      } else {
-        const errorData = await transactionsRes.json().catch(() => ({ message: 'Unknown error' }));
-        console.error('❌ Transactions Error:', errorData);
+        setTransactions(transactionsData.transactions);
       }
 
       if (performanceRes.ok) {
         const performanceResData = await performanceRes.json();
-        console.log('✅ Performance Data:', performanceResData);
-        console.log('📊 Number of purposes:', performanceResData.performance?.length || 0);
-        setPerformanceData(performanceResData.performance || []);
-      } else {
-        const errorData = await performanceRes.json().catch(() => ({ message: 'Unknown error' }));
-        console.error('❌ Performance Error:', errorData);
+        setPerformanceData(performanceResData.performance);
       }
 
     } catch (error) {
-      console.error('❌ Error fetching dashboard data:', error);
-      toast.error('Failed to load dashboard data: ' + error.message);
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -128,21 +89,6 @@ const Dashboard = () => {
   ];
 
   const years = ['2024', '2025', '2026', '2027'];
-
-  // Set default to current month from system
-  useEffect(() => {
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    
-    console.log('📅 System Current Date:', now.toLocaleDateString());
-    console.log('📅 Current Month:', currentMonth);
-    console.log('📅 Current Year:', currentYear);
-    
-    // If you want to force a specific month/year for testing
-    // setSelectedMonth(1); // January
-    // setSelectedYear(2027);
-  }, []);
 
   const getMonthName = (monthValue) => {
     return months.find(m => m.value === monthValue)?.label || 'May';
