@@ -16,6 +16,7 @@ import { AppSidebar } from './Asidebar';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
+  // Current date: January 2027 based on system prompt
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // Current month
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear()); // Current year
   const [loading, setLoading] = useState(true);
@@ -24,6 +25,14 @@ const Dashboard = () => {
   const [performanceData, setPerformanceData] = useState([]);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://logs-server-system-production.up.railway.app/api';
+
+  // Debug: Log initial month and year
+  useEffect(() => {
+    console.log('🗓️ Initial Dashboard State:');
+    console.log('  Month:', selectedMonth);
+    console.log('  Year:', selectedYear);
+    console.log('  API URL:', API_BASE_URL);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
@@ -34,9 +43,14 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('admin_token');
       if (!token) {
-        toast.error('Authentication required');
+        console.error('❌ No admin token found');
+        toast.error('Authentication required. Please login again.');
         return;
       }
+
+      console.log('🔵 Fetching dashboard data...');
+      console.log('📅 Month:', selectedMonth, 'Year:', selectedYear);
+      console.log('🔑 Token:', token.substring(0, 20) + '...');
 
       const headers = {
         'Authorization': `Bearer ${token}`,
@@ -50,24 +64,41 @@ const Dashboard = () => {
         fetch(`${API_BASE_URL}/admin/dashboard/performance?month=${selectedMonth}&year=${selectedYear}`, { headers })
       ]);
 
+      console.log('📊 Statistics Response:', statsRes.status, statsRes.ok);
+      console.log('📋 Transactions Response:', transactionsRes.status, transactionsRes.ok);
+      console.log('📈 Performance Response:', performanceRes.status, performanceRes.ok);
+
       if (statsRes.ok) {
         const statsData = await statsRes.json();
+        console.log('✅ Statistics Data:', statsData);
         setStatistics(statsData.statistics);
+      } else {
+        const errorData = await statsRes.json();
+        console.error('❌ Statistics Error:', errorData);
+        toast.error('Failed to load statistics: ' + (errorData.message || 'Unknown error'));
       }
 
       if (transactionsRes.ok) {
         const transactionsData = await transactionsRes.json();
+        console.log('✅ Transactions Data:', transactionsData);
         setTransactions(transactionsData.transactions);
+      } else {
+        const errorData = await transactionsRes.json();
+        console.error('❌ Transactions Error:', errorData);
       }
 
       if (performanceRes.ok) {
         const performanceResData = await performanceRes.json();
+        console.log('✅ Performance Data:', performanceResData);
         setPerformanceData(performanceResData.performance);
+      } else {
+        const errorData = await performanceRes.json();
+        console.error('❌ Performance Error:', errorData);
       }
 
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      console.error('❌ Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data: ' + error.message);
     } finally {
       setLoading(false);
     }
