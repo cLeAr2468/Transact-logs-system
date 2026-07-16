@@ -112,30 +112,60 @@ const Transaction = () => {
         const transaction = transactions.find(t => t.id === transactionId);
         const userEmail = transaction?.user?.email || 'student';
         
+        // Check if email was sent successfully
+        const emailFailed = data.email_sent === false;
+        
         // Show success message with email notification info
         if (newStatus === 'approved') {
           toast.success(
             <div>
               <p className="font-semibold">✅ Appointment Approved!</p>
-              <p className="text-sm">Email notification sent to {userEmail}</p>
+              {emailFailed ? (
+                <>
+                  <p className="text-sm text-orange-600">⚠️ Email failed to send to {userEmail}</p>
+                  {data.email_error && (
+                    <p className="text-xs text-gray-500 mt-1">Reason: {data.email_error}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm">Email notification sent to {userEmail}</p>
+              )}
             </div>,
-            { duration: 5000 }
+            { duration: emailFailed ? 7000 : 5000 }
           );
         } else if (newStatus === 'rejected') {
           toast.success(
             <div>
               <p className="font-semibold">❌ Appointment Rejected</p>
-              <p className="text-sm">Email notification sent to {userEmail}</p>
+              {emailFailed ? (
+                <>
+                  <p className="text-sm text-orange-600">⚠️ Email failed to send to {userEmail}</p>
+                  {data.email_error && (
+                    <p className="text-xs text-gray-500 mt-1">Reason: {data.email_error}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm">Email notification sent to {userEmail}</p>
+              )}
             </div>,
-            { duration: 5000 }
+            { duration: emailFailed ? 7000 : 5000 }
           );
         } else if (newStatus === 'completed') {
           toast.success(
             <div>
               <p className="font-semibold">✅ Appointment Completed!</p>
-              <p className="text-sm">Email notification sent to {userEmail}</p>
+              {emailFailed ? (
+                <>
+                  <p className="text-sm text-orange-600">⚠️ Email failed to send to {userEmail}</p>
+                  {data.email_error && (
+                    <p className="text-xs text-gray-500 mt-1">Reason: {data.email_error}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm">Email notification sent to {userEmail}</p>
+              )}
             </div>,
-            { duration: 5000 }
+            { duration: emailFailed ? 7000 : 5000 }
           );
         } else {
           toast.success(data.message || `Transaction ${newStatus} successfully!`);
