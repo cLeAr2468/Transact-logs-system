@@ -32,9 +32,10 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
+      const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
+      
       if (!token) {
-        toast.error('Authentication required');
+        toast.error('Authentication required. Please log in.');
         return;
       }
 
@@ -43,6 +44,13 @@ const Dashboard = () => {
         'Content-Type': 'application/json',
       };
 
+      console.log('🔍 Fetching dashboard data...', {
+        month: selectedMonth,
+        year: selectedYear,
+        API_BASE_URL,
+        hasToken: !!token
+      });
+
       // Fetch all dashboard data in parallel with month/year filters
       const [statsRes, transactionsRes, performanceRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/dashboard/statistics?month=${selectedMonth}&year=${selectedYear}`, { headers }),
@@ -50,24 +58,55 @@ const Dashboard = () => {
         fetch(`${API_BASE_URL}/admin/dashboard/performance?month=${selectedMonth}&year=${selectedYear}`, { headers })
       ]);
 
+      console.log('📊 API Responses:', {
+        statistics: statsRes.status,
+        transactions: transactionsRes.status,
+        performance: performanceRes.status
+      });
+
+      // Handle statistics response
       if (statsRes.ok) {
         const statsData = await statsRes.json();
+        console.log('✅ Statistics data:', statsData);
         setStatistics(statsData.statistics);
+      } else {
+        const errorData = await statsRes.json().catch(() => ({}));
+        console.error('❌ Statistics failed:', statsRes.status, errorData);
+        toast.error(`Failed to load statistics: ${errorData.message || statsRes.statusText}`);
       }
 
+      // Handle transactions response
       if (transactionsRes.ok) {
         const transactionsData = await transactionsRes.json();
+        console.log('✅ Transactions data:', transactionsData);
         setTransactions(transactionsData.transactions);
+      } else {
+        const errorData = await transactionsRes.json().catch(() => ({}));
+        console.error('❌ Transactions failed:', transactionsRes.status, errorData);
       }
 
+      // Handle performance response
       if (performanceRes.ok) {
         const performanceResData = await performanceRes.json();
+        console.log('✅ Performance data:', performanceResData);
         setPerformanceData(performanceResData.performance);
+      } else {
+        const errorData = await performanceRes.json().catch(() => ({}));
+        console.error('❌ Performance failed:', performanceRes.status, errorData);
+      }
+
+      // Check for 401 Unauthorized
+      if (statsRes.status === 401 || transactionsRes.status === 401 || performanceRes.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('token');
+        // Optionally redirect to login
+        // window.location.href = '/login';
       }
 
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      console.error('❌ Error fetching dashboard data:', error);
+      toast.error(`Failed to load dashboard data: ${error.message}`);
     } finally {
       setLoading(false);
     }
