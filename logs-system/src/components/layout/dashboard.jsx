@@ -23,7 +23,7 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
   const [performanceData, setPerformanceData] = useState([]);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://logs-server-system-production.up.railway.app/api';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://logs-server-system-production.up.railway.app/api';
 
   useEffect(() => {
     fetchDashboardData();
@@ -196,7 +196,7 @@ const Dashboard = () => {
                 <div className="flex items-center gap-2">
                   <select 
                     value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
                     className="text-sm text-gray-700 bg-white border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
                     {months.map((month) => (
@@ -207,7 +207,7 @@ const Dashboard = () => {
                   </select>
                   <select 
                     value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
                     className="text-sm text-gray-700 bg-white border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
                     {years.map((year) => (
