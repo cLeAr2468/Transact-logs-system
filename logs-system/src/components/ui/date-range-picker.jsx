@@ -39,10 +39,10 @@ export function DateRangePicker({ value, onChange, className = '' }) {
       {isOpen && (
         <>
           <div 
-            className="fixed inset-0 z-40" 
+            className="fixed inset-0 z-[100]" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-0 mt-2 p-4 bg-white rounded-lg shadow-lg border border-gray-200 z-50 w-80">
+          <div className="absolute left-0 mt-2 p-4 bg-white rounded-lg shadow-lg border border-gray-200 z-[101] w-80">
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-2">
