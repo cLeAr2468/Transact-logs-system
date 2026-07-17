@@ -41,7 +41,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import api from "@/api";
 
 export default function Reports() {
   const [statistics, setStatistics] = useState({
@@ -67,6 +66,8 @@ export default function Reports() {
   const [includeDetails, setIncludeDetails] = useState(true);
   const [includeFeedback, setIncludeFeedback] = useState(false);
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://logs-server-system-production.up.railway.app/api";
+
   useEffect(() => {
     fetchReportsData();
     // Set default dates (current month)
@@ -80,31 +81,47 @@ export default function Reports() {
 
   const fetchReportsData = async () => {
     try {
-      console.log('🔍 Fetching reports data...');
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
 
-      // Fetch all data in parallel using axios
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
+      // Fetch all data in parallel
       const [statsRes, purposeRes, trendsRes, reportsRes] = await Promise.all([
-        api.get('/reports/statistics'),
-        api.get('/reports/by-purpose'),
-        api.get('/reports/monthly-trends'),
-        api.get('/reports/recent')
+        fetch(`${API_BASE_URL}/reports/statistics`, { headers }),
+        fetch(`${API_BASE_URL}/reports/by-purpose`, { headers }),
+        fetch(`${API_BASE_URL}/reports/monthly-trends`, { headers }),
+        fetch(`${API_BASE_URL}/reports/recent`, { headers })
       ]);
 
-      console.log('✅ Statistics:', statsRes.data);
-      setStatistics(statsRes.data.statistics);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStatistics(statsData.statistics);
+      }
 
-      console.log('✅ Purpose data:', purposeRes.data);
-      setPurposeData(purposeRes.data.data);
+      if (purposeRes.ok) {
+        const purposeResData = await purposeRes.json();
+        setPurposeData(purposeResData.data);
+      }
 
-      console.log('✅ Trends data:', trendsRes.data);
-      setMonthlyData(trendsRes.data.data);
+      if (trendsRes.ok) {
+        const trendsResData = await trendsRes.json();
+        setMonthlyData(trendsResData.data);
+      }
 
-      console.log('✅ Recent reports:', reportsRes.data);
-      setRecentReports(reportsRes.data.reports);
+      if (reportsRes.ok) {
+        const reportsResData = await reportsRes.json();
+        setRecentReports(reportsResData.reports);
+      }
 
-      toast.success('Reports data loaded successfully');
     } catch (error) {
-      console.error('❌ Error fetching reports data:', error);
+      console.error('Error fetching reports data:', error);
       toast.error('Failed to load reports data');
     } finally {
       setLoading(false);
@@ -114,6 +131,11 @@ export default function Reports() {
   const handleExportReport = async () => {
     try {
       setExporting(true);
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
 
       // Build query parameters
       const params = new URLSearchParams({
@@ -126,16 +148,19 @@ export default function Reports() {
         include_feedback: includeFeedback ? '1' : '0',
       });
 
-      const response = await api.get(`/reports/export?${params}`, {
-        responseType: 'blob'
+      const response = await fetch(`${API_BASE_URL}/reports/export?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
-      // Create blob and download
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
-      const url = window.URL.createObjectURL(blob);
-      
-      // Get filename from Content-Disposition header or use default
-      const contentDisposition = response.headers['content-disposition'];
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Get the filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `transactions_report_${startDate}_to_${endDate}.${fileFormat}`;
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
@@ -143,7 +168,10 @@ export default function Reports() {
           filename = filenameMatch[1];
         }
       }
-      
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
@@ -167,11 +195,24 @@ export default function Reports() {
 
   const handleDownloadReport = async (downloadUrl) => {
     try {
-      const response = await api.get(downloadUrl, {
-        responseType: 'blob'
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}${downloadUrl}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
-      const contentDisposition = response.headers['content-disposition'];
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+
+      const contentDisposition = response.headers.get('Content-Disposition');
       let filename = 'report.csv';
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
@@ -180,7 +221,7 @@ export default function Reports() {
         }
       }
 
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
