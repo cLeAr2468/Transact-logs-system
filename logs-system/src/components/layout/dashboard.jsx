@@ -13,11 +13,23 @@ import {
 } from '@/components/ui/table';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './Asidebar';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // Current month
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear()); // Current year
+  const navigate = useNavigate();
+  
+  // Initialize with current month date range
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+  const [dateRange, setDateRange] = useState({
+    start: firstDay.toISOString().split('T')[0],
+    end: lastDay.toISOString().split('T')[0],
+  });
+  
   const [loading, setLoading] = useState(true);
   const [statistics, setStatistics] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -27,7 +39,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [selectedMonth, selectedYear]);
+  }, [dateRange]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -45,17 +57,23 @@ const Dashboard = () => {
       };
 
       console.log('🔍 Fetching dashboard data...', {
-        month: selectedMonth,
-        year: selectedYear,
+        dateRange,
         API_BASE_URL,
         hasToken: !!token
       });
 
-      // Fetch all dashboard data in parallel with month/year filters
+      // Build query parameters for date range
+      const params = new URLSearchParams();
+      if (dateRange.start && dateRange.end) {
+        params.append('start_date', dateRange.start);
+        params.append('end_date', dateRange.end);
+      }
+
+      // Fetch all dashboard data in parallel with date range filters
       const [statsRes, transactionsRes, performanceRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/admin/dashboard/statistics?month=${selectedMonth}&year=${selectedYear}`, { headers }),
-        fetch(`${API_BASE_URL}/admin/dashboard/recent-transactions?limit=10&month=${selectedMonth}&year=${selectedYear}`, { headers }),
-        fetch(`${API_BASE_URL}/admin/dashboard/performance?month=${selectedMonth}&year=${selectedYear}`, { headers })
+        fetch(`${API_BASE_URL}/admin/dashboard/statistics?${params}`, { headers }),
+        fetch(`${API_BASE_URL}/admin/dashboard/recent-transactions?limit=10&${params}`, { headers }),
+        fetch(`${API_BASE_URL}/admin/dashboard/performance?${params}`, { headers })
       ]);
 
       console.log('📊 API Responses:', {
@@ -112,31 +130,13 @@ const Dashboard = () => {
     }
   };
 
-  const months = [
-    { value: 1, label: 'January' },
-    { value: 2, label: 'February' },
-    { value: 3, label: 'March' },
-    { value: 4, label: 'April' },
-    { value: 5, label: 'May' },
-    { value: 6, label: 'June' },
-    { value: 7, label: 'July' },
-    { value: 8, label: 'August' },
-    { value: 9, label: 'September' },
-    { value: 10, label: 'October' },
-    { value: 11, label: 'November' },
-    { value: 12, label: 'December' }
-  ];
-
-  const years = ['2024', '2025', '2026', '2027'];
-
-  const getMonthName = (monthValue) => {
-    return months.find(m => m.value === monthValue)?.label || 'May';
-  };
-
-  const getDateRange = () => {
-    const monthName = getMonthName(selectedMonth);
-    const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
-    return `${monthName} 1 - ${monthName} ${lastDay}, ${selectedYear}`;
+  const formatDateRange = () => {
+    if (!dateRange.start || !dateRange.end) return '';
+    const start = new Date(dateRange.start);
+    const end = new Date(dateRange.end);
+    const startStr = start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    const endStr = end.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return `${startStr} - ${endStr}`;
   };
 
   // Build stats array from backend data
@@ -231,32 +231,11 @@ const Dashboard = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <Calendar className="w-5 h-5 text-green-600" />
-                <div className="flex items-center gap-2">
-                  <select 
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                    className="text-sm text-gray-700 bg-white border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    {months.map((month) => (
-                      <option key={month.value} value={month.value}>
-                        {month.label}
-                      </option>
-                    ))}
-                  </select>
-                  <select 
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="text-sm text-gray-700 bg-white border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <span className="text-sm text-gray-500">({getDateRange()})</span>
+                <DateRangePicker
+                  value={dateRange}
+                  onChange={setDateRange}
+                />
+                <span className="text-sm text-gray-500">({formatDateRange()})</span>
               </div>
             </div>
 
@@ -314,11 +293,16 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="text-lg font-semibold">
-                          Recent Transactions - {getMonthName(selectedMonth)} {selectedYear}
+                          Recent Transactions
                         </CardTitle>
                         <CardDescription>Latest service requests for the selected period</CardDescription>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-green-600">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-green-600 hover:text-green-700"
+                        onClick={() => navigate('/recent-transact')}
+                      >
                         View All
                       </Button>
                     </div>
@@ -375,7 +359,7 @@ const Dashboard = () => {
                 <Card className="bg-gradient-to-br from-[#15592F] to-[#0d3d20] text-white h-full">
                   <CardHeader>
                     <CardTitle className="text-white text-[14px]">
-                      Performance Summary - {getMonthName(selectedMonth)} {selectedYear}
+                      Performance Summary
                     </CardTitle>
                     <CardDescription className="text-green-100 text-[14px]">
                       Top purposes for selected period
