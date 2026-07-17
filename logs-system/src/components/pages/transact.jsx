@@ -112,60 +112,30 @@ const Transaction = () => {
         const transaction = transactions.find(t => t.id === transactionId);
         const userEmail = transaction?.user?.email || 'student';
         
-        // Check if email was sent successfully
-        const emailFailed = data.email_sent === false;
-        
         // Show success message with email notification info
         if (newStatus === 'approved') {
           toast.success(
             <div>
               <p className="font-semibold">✅ Appointment Approved!</p>
-              {emailFailed ? (
-                <>
-                  <p className="text-sm text-orange-600">⚠️ Email failed to send to {userEmail}</p>
-                  {data.email_error && (
-                    <p className="text-xs text-gray-500 mt-1">Reason: {data.email_error}</p>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm">Email notification sent to {userEmail}</p>
-              )}
+              <p className="text-sm">Email notification sent to {userEmail}</p>
             </div>,
-            { duration: emailFailed ? 7000 : 5000 }
+            { duration: 5000 }
           );
         } else if (newStatus === 'rejected') {
           toast.success(
             <div>
               <p className="font-semibold">❌ Appointment Rejected</p>
-              {emailFailed ? (
-                <>
-                  <p className="text-sm text-orange-600">⚠️ Email failed to send to {userEmail}</p>
-                  {data.email_error && (
-                    <p className="text-xs text-gray-500 mt-1">Reason: {data.email_error}</p>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm">Email notification sent to {userEmail}</p>
-              )}
+              <p className="text-sm">Email notification sent to {userEmail}</p>
             </div>,
-            { duration: emailFailed ? 7000 : 5000 }
+            { duration: 5000 }
           );
         } else if (newStatus === 'completed') {
           toast.success(
             <div>
               <p className="font-semibold">✅ Appointment Completed!</p>
-              {emailFailed ? (
-                <>
-                  <p className="text-sm text-orange-600">⚠️ Email failed to send to {userEmail}</p>
-                  {data.email_error && (
-                    <p className="text-xs text-gray-500 mt-1">Reason: {data.email_error}</p>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm">Email notification sent to {userEmail}</p>
-              )}
+              <p className="text-sm">Email notification sent to {userEmail}</p>
             </div>,
-            { duration: emailFailed ? 7000 : 5000 }
+            { duration: 5000 }
           );
         } else {
           toast.success(data.message || `Transaction ${newStatus} successfully!`);
@@ -174,7 +144,25 @@ const Transaction = () => {
         // Refresh transactions list
         fetchTransactions();
       } else {
-        toast.error(data.message || 'Failed to update transaction status');
+        // Check if error is due to email sending failure
+        if (data.error === 'email_send_failed') {
+          const transaction = transactions.find(t => t.id === transactionId);
+          const userEmail = transaction?.user?.email || 'student';
+          
+          toast.error(
+            <div>
+              <p className="font-semibold">📧 Failed to Send Email Notification</p>
+              <p className="text-sm mt-1">{data.message || 'Could not send email notification to student.'}</p>
+              <p className="text-sm text-gray-500 mt-1">Status was NOT changed to {newStatus}.</p>
+              {data.details && (
+                <p className="text-xs text-gray-400 mt-1">{data.details}</p>
+              )}
+            </div>,
+            { duration: 7000 }
+          );
+        } else {
+          toast.error(data.message || 'Failed to update transaction status');
+        }
       }
     } catch (error) {
       console.error('Update error:', error);
