@@ -165,7 +165,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="bg-[#15592F] p-4 border-t border-white/20 h-14 flex">
         <Link to="/">
-          <SidebarMenuButton className="h-14 text-white hover:bg-white/10 hover:text-white flex items-center gap-3 justify-start px-3">
+          <SidebarMenuButton className="h-14 text-white hover:bg-white/10 hover:text-white flex gap-3 justify-start px-3">
             <div className="w-full h-6 shrink-0 flex items-center justify-center gap-3 mb-6">
               <LogOut className="w-6 h-6 shrink-0" />
               <span className="text-[18px]">Log out</span>
