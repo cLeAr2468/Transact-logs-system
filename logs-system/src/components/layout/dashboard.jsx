@@ -118,8 +118,6 @@ const Dashboard = () => {
         toast.error('Session expired. Please log in again.');
         localStorage.removeItem('admin_token');
         localStorage.removeItem('token');
-        // Optionally redirect to login
-        // window.location.href = '/login';
       }
 
     } catch (error) {
@@ -144,21 +142,23 @@ const Dashboard = () => {
     {
       title: 'Total Transactions',
       value: statistics.total_transactions.toLocaleString(),
-      description: `${statistics.target_percentage}% of monthly target`,
+      description: `${Math.round(statistics.target_percentage)}% of target (${statistics.monthly_target?.toLocaleString() || '6,500'})`,
       icon: RefreshCw,
-      trend: '+2.4%',
-      trendUp: true,
-      progress: statistics.target_percentage,
-      progressColor: 'from-black to-gray-800'
+      trend: statistics.target_percentage > 100 ? 'Target exceeded' : `${Math.round(100 - statistics.target_percentage)}% to goal`,
+      trendUp: statistics.target_percentage >= 50,
+      progress: Math.min(statistics.target_percentage, 100),
+      progressColor: 'from-[#15592F] to-[#0d3d20]'
     },
     {
       title: 'Pending Requests',
       value: statistics.pending_requests.toLocaleString(),
-      description: 'Needs attention soon',
+      description: statistics.pending_requests > 0 ? 'Needs attention soon' : 'All caught up!',
       icon: Calendar,
-      trend: statistics.pending_trend,
+      trend: statistics.pending_trend || 'N/A',
       trendUp: false,
-      progress: 45,
+      progress: statistics.total_transactions > 0 
+        ? Math.round((statistics.pending_requests / statistics.total_transactions) * 100) 
+        : 0,
       progressColor: 'from-orange-500 to-orange-600'
     },
     {
@@ -166,19 +166,21 @@ const Dashboard = () => {
       value: statistics.completed_services.toLocaleString(),
       description: `${statistics.completion_rate}% completion rate`,
       icon: CheckCircle,
-      trend: '+8.7%',
-      trendUp: true,
+      trend: statistics.completion_rate >= 80 ? 'Excellent' : statistics.completion_rate >= 60 ? 'Good' : 'Needs improvement',
+      trendUp: statistics.completion_rate >= 70,
       progress: statistics.completion_rate,
       progressColor: 'from-blue-500 to-blue-600'
     },
     {
       title: 'Feedback Score',
-      value: statistics.feedback_score.toString(),
+      value: statistics.feedback_score > 0 ? statistics.feedback_score.toFixed(1) : '0.0',
       suffix: '/5',
-      description: `Based on ${statistics.feedback_count} reviews`,
+      description: statistics.feedback_count > 0 
+        ? `Based on ${statistics.feedback_count} ${statistics.feedback_count === 1 ? 'review' : 'reviews'}` 
+        : 'No feedback yet',
       icon: Star,
-      trend: '+0.3',
-      trendUp: true,
+      trend: statistics.feedback_score >= 4.5 ? 'Outstanding' : statistics.feedback_score >= 4.0 ? 'Great' : statistics.feedback_score >= 3.0 ? 'Good' : 'Needs attention',
+      trendUp: statistics.feedback_score >= 4.0,
       rating: statistics.feedback_score
     }
   ] : [];
