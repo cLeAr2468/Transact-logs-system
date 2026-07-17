@@ -465,18 +465,6 @@ const Transaction = () => {
                     </Button>
 
                     <Button
-                      variant={filter === "Completed" ? "default" : "outline"}
-                      onClick={() => setFilter("Completed")}
-                      className={
-                        filter === "Completed"
-                          ? "bg-green-600 hover:bg-green-700 text-white"
-                          : ""
-                      }
-                    >
-                      Completed
-                    </Button>
-
-                    <Button
                       variant={filter === "Pending" ? "default" : "outline"}
                       onClick={() => setFilter("Pending")}
                       className={
@@ -489,7 +477,7 @@ const Transaction = () => {
                     </Button>
 
                     <Button
-                      variant={filter === "Processing" ? "default" : "outline"}
+                      variant={filter === "Approved" ? "default" : "outline"}
                       onClick={() => setFilter("Approved")}
                       className={
                         filter === "Approved"
@@ -498,6 +486,42 @@ const Transaction = () => {
                       }
                     >
                       Approved
+                    </Button>
+
+                    <Button
+                      variant={filter === "Completed" ? "default" : "outline"}
+                      onClick={() => setFilter("Completed")}
+                      className={
+                        filter === "Completed"
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : ""
+                      }
+                    >
+                      Completed
+                    </Button>
+
+                    <Button
+                      variant={filter === "Rejected" ? "default" : "outline"}
+                      onClick={() => setFilter("Rejected")}
+                      className={
+                        filter === "Rejected"
+                          ? "bg-gray-600 hover:bg-gray-700 text-white"
+                          : ""
+                      }
+                    >
+                      Rejected
+                    </Button>
+
+                    <Button
+                      variant={filter === "Cancelled" ? "default" : "outline"}
+                      onClick={() => setFilter("Cancelled")}
+                      className={
+                        filter === "Cancelled"
+                          ? "bg-orange-600 hover:bg-orange-700 text-white"
+                          : ""
+                      }
+                    >
+                      Cancelled
                     </Button>
                   </div>
                 </div>
