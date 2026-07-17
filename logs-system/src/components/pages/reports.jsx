@@ -66,7 +66,7 @@ export default function Reports() {
   const [includeDetails, setIncludeDetails] = useState(true);
   const [includeFeedback, setIncludeFeedback] = useState(false);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "https://logs-server-system-production.up.railway.app/api";
 
   useEffect(() => {
     fetchReportsData();

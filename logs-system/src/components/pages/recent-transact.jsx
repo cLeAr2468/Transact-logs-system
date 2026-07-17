@@ -159,7 +159,7 @@ const RecentTransact = () => {
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row gap-4">
                   {/* Date Range Picker */}
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 max-h-full">
                     <DateRangePicker
                       value={dateRange}
                       onChange={handleDateRangeChange}
