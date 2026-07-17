@@ -351,8 +351,6 @@ const Transaction = () => {
     if (status === 'approved') return 'Approved';
     if (status === 'pending') return 'Pending';
     if (status === 'completed') return 'Completed';
-    if (status === 'rejected') return 'Rejected';
-    if (status === 'cancelled') return 'Cancelled';
     return status;
   };
 
