@@ -297,14 +297,17 @@ const Transaction = () => {
 
   // ✅ COMBINED FILTER & SEARCH LOGIC
   const filteredTransactions = transactions.filter((item) => {
+    // FIRST: Filter out rejected and cancelled transactions completely
+    if (item.status === 'rejected' || item.status === 'cancelled') {
+      return false;
+    }
+
     // Map backend status to frontend display status
     const displayStatus = item.status === 'approved' ? 'Approved' : 
                          item.status === 'pending' ? 'Pending' :
-                         item.status === 'completed' ? 'Completed' :
-                         item.status === 'rejected' ? 'Rejected' :
-                         item.status === 'cancelled' ? 'Cancelled' : item.status;
+                         item.status === 'completed' ? 'Completed' : item.status;
 
-    // First filter by status
+    // Filter by status
     const statusMatch = filter === "All" || displayStatus === filter;
 
     // Get student name from user object
@@ -312,7 +315,7 @@ const Transaction = () => {
     const studentCourse = item.user?.course || '';
     const address = `${item.brgy}, ${item.municipality}, ${item.province}`;
 
-    // Then search by query (searches in multiple fields)
+    // Search by query (searches in multiple fields)
     const searchMatch = searchQuery === "" || 
       studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.purpose.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -498,30 +501,6 @@ const Transaction = () => {
                       }
                     >
                       Completed
-                    </Button>
-
-                    <Button
-                      variant={filter === "Rejected" ? "default" : "outline"}
-                      onClick={() => setFilter("Rejected")}
-                      className={
-                        filter === "Rejected"
-                          ? "bg-gray-600 hover:bg-gray-700 text-white"
-                          : ""
-                      }
-                    >
-                      Rejected
-                    </Button>
-
-                    <Button
-                      variant={filter === "Cancelled" ? "default" : "outline"}
-                      onClick={() => setFilter("Cancelled")}
-                      className={
-                        filter === "Cancelled"
-                          ? "bg-orange-600 hover:bg-orange-700 text-white"
-                          : ""
-                      }
-                    >
-                      Cancelled
                     </Button>
                   </div>
                 </div>
