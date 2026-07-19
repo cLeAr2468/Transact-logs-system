@@ -33,6 +33,12 @@ const items = [
     relatedRoutes: [],
   },
   {
+    title: "Profile",
+    url: "/profile",
+    icon: Users,
+    relatedRoutes: [],
+  },
+  {
     title: "Staff",
     url: "/manage-users",
     icon: Users,
@@ -104,9 +110,16 @@ export function AppSidebar() {
   const role = getUserRole();
 
   const visibleItems = items.filter((item) => {
+    // Hide Staff management from staff users
     if (item.title === "Staff" && ["staff", "employee", "user"].includes(role)) {
       return false;
     }
+    
+    // Hide Profile from admin users (only show for staff)
+    if (item.title === "Profile" && role === "admin") {
+      return false;
+    }
+    
     return true;
   });
 

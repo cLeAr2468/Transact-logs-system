@@ -13,6 +13,7 @@ import Masteerlist from "@/components/pages/master-list";
 import AddManual from "@/components/pages/add-manual";
 import AddStaff from "@/components/pages/add-staff";
 import RecentTransact from "@/components/pages/recent-transact";
+import Profile from "@/components/pages/Profile";
 
 function Reroutes() {
   return (
@@ -31,6 +32,7 @@ function Reroutes() {
       <Route path="/add-manual" element={<AddManual />} />
       <Route path="/add-staff" element={<AddStaff />} />
       <Route path="/recent-transact" element={<RecentTransact />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   );
 }

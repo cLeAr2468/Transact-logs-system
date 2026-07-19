@@ -25,7 +25,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '../layout/Asidebar';
 import EditStaffDialog from "@/components/modals/edit-staff";
 
-const ManageUser = () => {
+const Managestaff = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
@@ -315,4 +315,4 @@ const ManageUser = () => {
   );
 };
 
-export default ManageUser;
+export default Managestaff;
