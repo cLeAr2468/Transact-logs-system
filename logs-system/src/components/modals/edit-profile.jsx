@@ -23,22 +23,21 @@ import {
 } from "@/components/ui/select";
 
 import { Pencil, Loader2 } from "lucide-react";
-import { updateStaffProfile } from "@/api/profileApi";
+import { updateProfile } from "@/api/profileApi";
 import { toast } from "sonner";
 
-export default function EditProfileStaffDialog({
-  staff,
+export default function EditProfileDialog({
+  user,
   fullWidth = false,
   onSave,
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(staff);
+  const [form, setForm] = useState(user);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    setForm(staff);
-  }, [staff]);
+    setForm(user);
+  }, [user]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -52,21 +51,17 @@ export default function EditProfileStaffDialog({
   async function handleSave() {
     try {
       setLoading(true);
-      setError(null);
 
-      // Call the API to update profile
-      const response = await updateStaffProfile(form);
+      const response = await updateProfile(form);
 
-      // Update local state with the response
       if (onSave) {
-        onSave(response.staff || response.user);
+        onSave(response.user || response.staff);
       }
 
       toast.success("Profile updated successfully!");
       setOpen(false);
     } catch (error) {
       console.error("Failed to update profile:", error);
-      setError(error.message || "Failed to update profile");
       toast.error(error.message || "Failed to update profile");
     } finally {
       setLoading(false);
@@ -90,7 +85,6 @@ export default function EditProfileStaffDialog({
             Update your account information.
           </DialogDescription>
         </DialogHeader>
-        {/* Form */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
@@ -118,8 +112,8 @@ export default function EditProfileStaffDialog({
             <Label>First Name</Label>
 
             <Input
-              name="fname"
-              value={form.fname || ''}
+              name="firstname"
+              value={form.firstname || ''}
               onChange={handleChange}
             />
           </div>
@@ -128,8 +122,8 @@ export default function EditProfileStaffDialog({
             <Label>Middle Name</Label>
 
             <Input
-              name="mname"
-              value={form.mname || ''}
+              name="middlename"
+              value={form.middlename || ''}
               onChange={handleChange}
             />
           </div>
@@ -138,8 +132,28 @@ export default function EditProfileStaffDialog({
             <Label>Last Name</Label>
 
             <Input
-              name="lname"
-              value={form.lname || ''}
+              name="lastname"
+              value={form.lastname || ''}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Position</Label>
+
+            <Input
+              name="position"
+              value={form.position || ''}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Contact Number</Label>
+
+            <Input
+              name="contact_number"
+              value={form.contact_number || ''}
               onChange={handleChange}
             />
           </div>
@@ -171,13 +185,8 @@ export default function EditProfileStaffDialog({
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
+        </div>
 
         <DialogFooter className="mt-8">
           <Button

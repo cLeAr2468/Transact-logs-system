@@ -23,6 +23,7 @@ import {
   FileText,
   Megaphone,
   LogOut,
+  UserCircle,
 } from "lucide-react";
 
 const items = [
@@ -35,8 +36,9 @@ const items = [
   {
     title: "Profile",
     url: "/profile",
-    icon: Users,
+    icon: UserCircle,
     relatedRoutes: [],
+    staffOnly: true,
   },
   {
     title: "Staff",
@@ -110,16 +112,14 @@ export function AppSidebar() {
   const role = getUserRole();
 
   const visibleItems = items.filter((item) => {
-    // Hide Staff management from staff users
+    // Hide Staff menu for staff users
     if (item.title === "Staff" && ["staff", "employee", "user"].includes(role)) {
       return false;
     }
-    
-    // Hide Profile from admin users (only show for staff)
-    if (item.title === "Profile" && role === "admin") {
-      return false;
+    // Show Profile only for staff users, hide for admin
+    if (item.staffOnly) {
+      return ["staff", "employee", "user"].includes(role);
     }
-    
     return true;
   });
 
