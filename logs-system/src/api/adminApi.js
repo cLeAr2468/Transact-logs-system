@@ -17,9 +17,21 @@ export const adminLogin = async (credentials) => {
       email: credentials.email,
       password: credentials.password,
     });
+    
+    console.log("🔑 AdminLogin API response:", response.data);
+    
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'Login failed' };
+    console.error("❌ AdminLogin API error:", error.response?.data || error);
+    
+    // Extract error message from various possible locations
+    const errorMessage = 
+      error.response?.data?.message || 
+      error.response?.data?.error ||
+      error.message || 
+      'Login failed';
+    
+    throw { message: errorMessage, ...error.response?.data };
   }
 };
 

@@ -54,13 +54,19 @@ function Login() {
     try {
       const response = await adminLogin({ email, password });
 
+      console.log("📥 Login response:", response);
+
+      // Handle response structure from backend
       const responseData = response?.data ?? response;
+      
+      // Extract token from various possible locations
       const token =
         responseData?.token ||
         responseData?.access_token ||
         response?.token ||
         response?.access_token;
 
+      // Extract user data
       const userData =
         responseData?.user ||
         responseData?.admin ||
@@ -69,6 +75,7 @@ function Login() {
         responseData?.data ||
         responseData;
 
+      // Extract role from user data
       const roleValue =
         userData?.role ||
         userData?.user_role ||
@@ -80,9 +87,17 @@ function Login() {
         responseData?.userRole;
 
       if (!token) {
+        console.error("❌ No token found in response");
         throw new Error("No authentication token returned from server.");
       }
 
+      console.log("✅ Login successful:", { 
+        hasToken: !!token, 
+        role: roleValue,
+        userName: userData?.full_name || userData?.email 
+      });
+
+      // Store authentication data
       localStorage.setItem("token", token);
       localStorage.setItem("authToken", token);
       localStorage.setItem("admin_token", token);
@@ -103,13 +118,21 @@ function Login() {
         localStorage.removeItem("remember_admin");
       }
 
-      toast.success(response?.message || "Login successful!");
+      toast.success(responseData?.message || response?.message || "Login successful!");
 
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("❌ Login failed:", err);
-      setError(err.message || "Invalid email or password");
-      toast.error(err.message || "Invalid email or password");
+      
+      // Extract error message
+      const errorMessage = 
+        err?.message || 
+        err?.error?.message || 
+        err?.data?.message || 
+        "Invalid email or password";
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
