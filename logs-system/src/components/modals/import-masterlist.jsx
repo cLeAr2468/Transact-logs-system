@@ -114,12 +114,20 @@ const ImportMasterlistDialog = ({ isOpen, onClose, onImportSuccess }) => {
       console.log("✅ Import result:", result);
       
       setImportResult(result);
-      setStep(3);
       
-      // Notify parent to refresh data
-      if (onImportSuccess) {
-        onImportSuccess();
+      // Check if it was successful or all duplicates
+      if (result.success) {
+        setStep(3); // Go to success page
+        // Notify parent to refresh data
+        if (onImportSuccess) {
+          onImportSuccess();
+        }
+      } else {
+        // All records are duplicates or failed
+        setError(result.message);
+        setStep(2); // Stay on preview step
       }
+      
     } catch (err) {
       console.error("❌ Import error:", err);
       setError(err.message || "Failed to import CSV file");
