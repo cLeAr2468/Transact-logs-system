@@ -127,6 +127,30 @@ export const resetPassword = async (email, otp, password, passwordConfirmation) 
   }
 };
 
+/**
+ * Change staff password
+ * @param {string} currentPassword - Current password
+ * @param {string} newPassword - New password
+ * @returns {Promise} API response
+ */
+export const changeStaffPassword = async (currentPassword, newPassword) => {
+  try {
+    const response = await api.post('/admin/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    return response.data;
+  } catch (error) {
+    const errorMessage = 
+      error.response?.data?.message || 
+      error.response?.data?.error ||
+      error.message || 
+      'Failed to change password';
+    
+    throw { message: errorMessage, ...error.response?.data };
+  }
+};
+
 export default {
   adminLogin,
   adminLogout,
@@ -135,4 +159,5 @@ export default {
   verifyOtp,
   resendOtp,
   resetPassword,
+  changeStaffPassword,
 };
