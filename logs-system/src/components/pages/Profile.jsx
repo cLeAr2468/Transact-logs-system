@@ -20,8 +20,6 @@ import { AppSidebar } from "@/components/layout/Asidebar";
 
 import {
     Mail,
-    User,
-    Phone,
     Loader2,
     IdCard,
 } from "lucide-react";
@@ -198,18 +196,6 @@ export default function ProfileDisplay() {
                                                 icon={<IdCard size={18} />}
                                                 label="Staff ID"
                                                 value={user.staff_id || 'N/A'}
-                                            />
-
-                                            <Info
-                                                icon={<User size={18} />}
-                                                label="Position"
-                                                value={user.position || 'Staff'}
-                                            />
-
-                                            <Info
-                                                icon={<Phone size={18} />}
-                                                label="Contact Number"
-                                                value={user.contact_number || 'N/A'}
                                             />
 
                                             <Info

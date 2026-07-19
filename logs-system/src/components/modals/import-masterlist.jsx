@@ -132,9 +132,9 @@ const ImportMasterlistDialog = ({ isOpen, onClose, onImportSuccess }) => {
   const handleDownloadTemplate = () => {
     // Create sample CSV content
     const csvContent = `student_id,fname,mname,lname,email,course,year_level
-2024-00001,Juan,Miguel,Dela Cruz,juan.delacruz@nwssu.edu.ph,BSIT,1st Year
-2024-00002,Maria,Santos,Garcia,maria.garcia@nwssu.edu.ph,BSCS,2nd Year
-2024-00003,Pedro,,Reyes,pedro.reyes@nwssu.edu.ph,BEED,3rd Year`;
+23-SJ00404,Criscel jane,N,Herra,herracrisceljane@gmail.com,BSIT,4th Year
+23-SJ00364,KYLA,A,ALIMAN,alimankyla2@gmail.com,BSIT,4th Year
+23-SJ00376,RENATO,,G,BORDALLO,gananciasrheen43@gmail.com,BSIT,4th Year`;
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
