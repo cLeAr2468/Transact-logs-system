@@ -147,12 +147,6 @@ export default function ProfileDisplay() {
                                                             label="Staff ID"
                                                             value={user.staff_id || 'N/A'}
                                                         />
-
-                                                        <Info
-                                                            icon={<User size={18} />}
-                                                            label="Position"
-                                                            value={user.position || 'Staff'}
-                                                        />
                                                         <Info
                                                             icon={<Mail size={18} />}
                                                             label="Email"

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/input-otp";
 
 import { ShieldCheck, Clock3, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function VerifyOtpDialog({
   open,
@@ -28,8 +28,50 @@ export default function VerifyOtpDialog({
   loading = false,
 }) {
   const [resendLoading, setResendLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
+  const [isExpired, setIsExpired] = useState(false);
+
+  // Reset timer when dialog opens
+  useEffect(() => {
+    if (open) {
+      setTimeLeft(300);
+      setIsExpired(false);
+    }
+  }, [open]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!open || timeLeft <= 0) {
+      if (timeLeft <= 0 && open) {
+        setIsExpired(true);
+      }
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setIsExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [open, timeLeft]);
+
+  // Format time as MM:SS
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   const handleVerify = () => {
+    if (isExpired) {
+      return;
+    }
     if (onVerify) {
       onVerify();
     }
@@ -48,6 +90,10 @@ export default function VerifyOtpDialog({
       setResendLoading(true);
       try {
         await onResend();
+        // Reset timer after successful resend
+        setTimeLeft(300);
+        setIsExpired(false);
+        setOtp("");
       } catch (error) {
         console.error("Error resending OTP:", error);
       } finally {
@@ -92,7 +138,7 @@ export default function VerifyOtpDialog({
               maxLength={6}
               value={otp}
               onChange={(value) => setOtp(value)}
-              disabled={loading}
+              disabled={loading || isExpired}
             >
               <InputOTPGroup className="gap-1.5 sm:gap-3">
                 <InputOTPSlot
@@ -125,19 +171,33 @@ export default function VerifyOtpDialog({
 
           {/* Timer */}
           <div className="mt-4 flex items-center gap-2 text-sm text-gray-500 sm:mt-6">
-            <Clock3 size={16} />
+            <Clock3 size={16} className={isExpired ? "text-red-500" : ""} />
             <span>
-              Code expires in{" "}
-              <span className="font-semibold text-green-700">
-                05:00
-              </span>
+              {isExpired ? (
+                <span className="font-semibold text-red-500">
+                  Code expired
+                </span>
+              ) : (
+                <>
+                  Code expires in{" "}
+                  <span className={`font-semibold ${timeLeft <= 60 ? "text-red-500" : "text-green-700"}`}>
+                    {formatTime(timeLeft)}
+                  </span>
+                </>
+              )}
             </span>
           </div>
+
+          {isExpired && (
+            <p className="mt-2 text-sm text-red-500 text-center">
+              Please click "Resend Code" to get a new OTP
+            </p>
+          )}
 
           {/* Verify Button */}
           <Button
             onClick={handleVerify}
-            disabled={loading || otp.length !== 6}
+            disabled={loading || otp.length !== 6 || isExpired}
             className="mt-6 h-12 w-full rounded-xl bg-green-700 text-base hover:bg-green-800 sm:mt-8 sm:h-14 sm:text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
@@ -148,7 +208,7 @@ export default function VerifyOtpDialog({
             ) : (
               <>
                 <CheckCircle2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                Verify
+                {isExpired ? "Code Expired" : "Verify"}
               </>
             )}
           </Button>

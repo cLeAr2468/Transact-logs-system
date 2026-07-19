@@ -256,7 +256,7 @@ export default function CreateNewPasswordDialog({
           {/* Button */}
           <Button
             onClick={handleResetPassword}
-            disabled={loading || !passwordsMatch || score < 3}
+            disabled={loading || !passwordsMatch || !hasLength}
             className="h-14 w-full rounded-xl bg-green-700 text-base font-semibold hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (

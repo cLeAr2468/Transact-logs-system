@@ -139,16 +139,6 @@ export default function EditProfileDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Position</Label>
-
-            <Input
-              name="position"
-              value={form.position || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label>Status</Label>
 
             <Select
