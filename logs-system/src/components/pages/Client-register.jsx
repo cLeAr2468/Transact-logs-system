@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
+import { toast } from "sonner";
 
 function Register() {
   const [form, setForm] = useState({
@@ -63,7 +64,7 @@ function Register() {
 
       console.log(response.data);
 
-      alert("Registered successfully!");
+      toast.success("Registered successfully!");
 
       setForm({
         student_id: "",
@@ -80,7 +81,7 @@ function Register() {
     } catch (error) {
       console.error(error.response?.data);
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
         "Registration failed. Please try again."
       );

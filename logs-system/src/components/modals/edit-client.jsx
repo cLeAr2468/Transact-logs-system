@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { updateUser } from '../../api/userApi';
+import { toast } from "sonner";
 
 const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
   const [formData, setFormData] = useState({
@@ -95,7 +96,7 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
       const response = await updateUser(client.id, formData);
       console.log("✅ User updated:", response);
       
-      alert(response.message || "User updated successfully!");
+      toast.success(response.message || "User updated successfully!");
       
       // Notify parent component to refresh data
       if (onUserUpdated) {
@@ -109,9 +110,13 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
       // Handle validation errors
       if (err.errors) {
         const firstError = Object.values(err.errors)[0];
-        setError(Array.isArray(firstError) ? firstError[0] : firstError);
+        const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+        setError(errorMessage);
+        toast.error(errorMessage);
       } else {
-        setError(err.message || "Failed to update user");
+        const errorMessage = err.message || "Failed to update user";
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } finally {
       setLoading(false);

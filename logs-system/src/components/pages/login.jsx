@@ -21,8 +21,6 @@ function Login() {
   const [showNewPasswordDialog, setShowNewPasswordDialog] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
 
   // Login form state
   const [email, setEmail] = useState("");
@@ -221,35 +219,34 @@ function Login() {
     setOtp("");
   };
 
-  const handlePasswordSuccess = async () => {
-    if (!newPassword) {
+  const handlePasswordSuccess = async (password, passwordConfirmation) => {
+    if (!password) {
       toast.error("Please enter new password");
       return;
     }
-    if (newPassword.length < 6) {
+    if (password.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
     }
-    if (newPassword !== confirmPassword) {
+    if (password !== passwordConfirmation) {
       toast.error("Passwords do not match");
       return;
     }
 
     setResetLoading(true);
     try {
-      const response = await resetPassword(forgotEmail, otp, newPassword, confirmPassword);
+      const response = await resetPassword(forgotEmail, otp, password, passwordConfirmation);
       console.log("✅ Password reset successful:", response.message);
 
-      toast.success("Password reset successfully!");
+      toast.success("Password reset successfully! Please login with your new password.");
 
       setShowNewPasswordDialog(false);
       setForgotEmail("");
       setOtp("");
-      setNewPassword("");
-      setConfirmPassword("");
     } catch (err) {
       console.error("❌ Password reset failed:", err);
       toast.error(err.message || "Failed to reset password");
+      throw err; // Re-throw to be handled by modal
     } finally {
       setResetLoading(false);
     }
@@ -261,8 +258,6 @@ function Login() {
     setShowNewPasswordDialog(false);
     setForgotEmail("");
     setOtp("");
-    setNewPassword("");
-    setConfirmPassword("");
   };
 
   return (
@@ -412,10 +407,6 @@ function Login() {
         <CreateNewPasswordDialog
           open={showNewPasswordDialog}
           onOpenChange={setShowNewPasswordDialog}
-          password={newPassword}
-          setPassword={setNewPassword}
-          confirmPassword={confirmPassword}
-          setConfirmPassword={setConfirmPassword}
           onBack={handleBackToLogin}
           onSuccess={handlePasswordSuccess}
           loading={resetLoading}
@@ -579,10 +570,6 @@ function Login() {
           <CreateNewPasswordDialog
             open={showNewPasswordDialog}
             onOpenChange={setShowNewPasswordDialog}
-            password={newPassword}
-            setPassword={setNewPassword}
-            confirmPassword={confirmPassword}
-            setConfirmPassword={setConfirmPassword}
             onBack={handleBackToLogin}
             onSuccess={handlePasswordSuccess}
             loading={resetLoading}

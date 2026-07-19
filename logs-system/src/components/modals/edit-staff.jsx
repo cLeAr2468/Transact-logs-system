@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { updateStaff } from '../../api/staffApi';
+import { toast } from "sonner";
 
 export default function EditStaffDialog({ isOpen, onClose, staff, onStaffUpdated }) {
   const [formData, setFormData] = useState({
@@ -82,7 +83,7 @@ export default function EditStaffDialog({ isOpen, onClose, staff, onStaffUpdated
       const response = await updateStaff(staff.id, formData);
       console.log("✅ Staff updated:", response);
       
-      alert(response.message || "Staff member updated successfully!");
+      toast.success(response.message || "Staff member updated successfully!");
       
       // Notify parent component to refresh data
       if (onStaffUpdated) {
@@ -96,9 +97,13 @@ export default function EditStaffDialog({ isOpen, onClose, staff, onStaffUpdated
       // Handle validation errors
       if (err.errors) {
         const firstError = Object.values(err.errors)[0];
-        setError(Array.isArray(firstError) ? firstError[0] : firstError);
+        const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+        setError(errorMessage);
+        toast.error(errorMessage);
       } else {
-        setError(err.message || "Failed to update staff member");
+        const errorMessage = err.message || "Failed to update staff member";
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } finally {
       setLoading(false);

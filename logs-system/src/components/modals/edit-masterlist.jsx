@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { updateMasterlistEntry } from '../../api/masterlistApi';
+import { toast } from "sonner";
 
 const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated }) => {
   const [formData, setFormData] = useState({
@@ -95,7 +96,7 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
       const response = await updateMasterlistEntry(masterlist.id, formData);
       console.log("✅ Masterlist updated:", response);
       
-      alert(response.message || "Masterlist entry updated successfully!");
+      toast.success(response.message || "Masterlist entry updated successfully!");
       
       // Notify parent component to refresh data
       if (onMasterlistUpdated) {
@@ -109,9 +110,13 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
       // Handle validation errors
       if (err.errors) {
         const firstError = Object.values(err.errors)[0];
-        setError(Array.isArray(firstError) ? firstError[0] : firstError);
+        const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+        setError(errorMessage);
+        toast.error(errorMessage);
       } else {
-        setError(err.message || "Failed to update masterlist entry");
+        const errorMessage = err.message || "Failed to update masterlist entry";
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } finally {
       setLoading(false);

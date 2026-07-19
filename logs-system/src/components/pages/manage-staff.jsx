@@ -24,6 +24,7 @@ import {
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '../layout/Asidebar';
 import EditStaffDialog from "@/components/modals/edit-staff";
+import { toast } from "sonner";
 
 const Managestaff = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -124,13 +125,13 @@ const Managestaff = () => {
     try {
       const response = await deleteStaff(staffId);
       console.log("✅ Staff deleted:", response);
-      alert(response.message || "Staff member deleted successfully!");
+      toast.success(response.message || "Staff member deleted successfully!");
       
       // Refresh the list
       fetchStaffData();
     } catch (err) {
       console.error("❌ Error deleting staff:", err);
-      alert(err.message || "Failed to delete staff member");
+      toast.error(err.message || "Failed to delete staff member");
     }
   };
 

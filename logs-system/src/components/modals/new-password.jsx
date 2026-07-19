@@ -21,12 +21,10 @@ export default function CreateNewPasswordDialog({
   onOpenChange,
   onBack,
   onSuccess,
-  password,
-  setPassword,
-  confirmPassword,
-  setConfirmPassword,
   loading = false,
 }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -50,7 +48,7 @@ export default function CreateNewPasswordDialog({
 
   const handleResetPassword = () => {
     if (onSuccess) {
-      onSuccess();
+      onSuccess(password, confirmPassword);
     } else {
       onOpenChange(false);
     }
@@ -116,6 +114,7 @@ export default function CreateNewPasswordDialog({
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-3.5 text-gray-500 hover:text-gray-700"
+                disabled={loading}
               >
                 {showPassword ? (
                   <EyeOff size={20} />
@@ -186,6 +185,7 @@ export default function CreateNewPasswordDialog({
                     setShowConfirm(!showConfirm)
                   }
                   className="text-gray-500 hover:text-gray-700"
+                  disabled={loading}
                 >
                   {showConfirm ? (
                     <EyeOff size={20} />

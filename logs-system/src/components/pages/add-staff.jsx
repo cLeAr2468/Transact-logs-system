@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
+import { toast } from "sonner";
 
 function AddStaff() {
   const [form, setForm] = useState({
@@ -68,7 +69,11 @@ function AddStaff() {
       setError("Please enter password");
       return;
     }
-    if (form.password.length < 6) {
+
+    // Validate password requirements
+    const hasLength = form.password.length >= 6;
+    
+    if (!hasLength) {
       setError("Password must be at least 6 characters");
       return;
     }
@@ -81,7 +86,7 @@ function AddStaff() {
 
       console.log("✅ Staff registered:", response);
 
-      alert(response.message || "Staff registered successfully!");
+      toast.success(response.message || "Staff registered successfully!");
 
       // Reset form
       setForm({
@@ -101,9 +106,13 @@ function AddStaff() {
       // Handle validation errors
       if (error.errors) {
         const firstError = Object.values(error.errors)[0];
-        setError(Array.isArray(firstError) ? firstError[0] : firstError);
+        const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+        setError(errorMessage);
+        toast.error(errorMessage);
       } else {
-        setError(error.message || "Registration failed. Please try again.");
+        const errorMessage = error.message || "Registration failed. Please try again.";
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -165,7 +174,7 @@ function AddStaff() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="student@example.com"
+                    placeholder="Enter Email Address"
                     value={form.email}
                     onChange={handleChange}
                     className="pl-10"
@@ -183,7 +192,7 @@ function AddStaff() {
 
                   <Input
                     id="fname"
-                    placeholder="John"
+                    placeholder="Enter First Name"
                     value={form.fname}
                     onChange={handleChange}
                     className="pl-10"
@@ -201,7 +210,7 @@ function AddStaff() {
 
                   <Input
                     id="mname"
-                    placeholder="Optional"
+                    placeholder="Enter Middle Name"
                     value={form.mname}
                     onChange={handleChange}
                     className="pl-10"
@@ -218,7 +227,7 @@ function AddStaff() {
 
                   <Input
                     id="lname"
-                    placeholder="Doe"
+                    placeholder="Enter Last Name"
                     value={form.lname}
                     onChange={handleChange}
                     className="pl-10"
@@ -238,7 +247,7 @@ function AddStaff() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Minimum 6 characters"
+                    placeholder="Enter Password"
                     value={form.password}
                     onChange={handleChange}
                     className="pl-10"

@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
+import { toast } from "sonner";
 
 function AddManual() {
   const [form, setForm] = useState({
@@ -62,7 +63,7 @@ function AddManual() {
 
       console.log(response);
 
-      alert("Student added to masterlist successfully!");
+      toast.success("Student added to masterlist successfully!");
 
       setForm({
         student_id: "",
@@ -78,7 +79,7 @@ function AddManual() {
     } catch (error) {
       console.error(error);
 
-      alert(
+      toast.error(
         error.message ||
           "Failed to add student to masterlist. Please try again."
       );
