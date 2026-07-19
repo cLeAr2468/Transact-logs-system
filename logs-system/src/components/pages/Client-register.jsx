@@ -138,7 +138,7 @@ function Register() {
                         <Input
                           id="email"
                           type="email"
-                          placeholder="student@example.com"
+                          placeholder="Enter Email"
                           value={form.email}
                           onChange={handleChange}
                           className="pl-10"
@@ -156,7 +156,7 @@ function Register() {
 
                         <Input
                           id="fname"
-                          placeholder="John"
+                          placeholder="Enter First Name"
                           value={form.fname}
                           onChange={handleChange}
                           className="pl-10"
@@ -174,7 +174,7 @@ function Register() {
 
                         <Input
                           id="mname"
-                          placeholder="Optional"
+                          placeholder="Enter Middle Name"
                           value={form.mname}
                           onChange={handleChange}
                           className="pl-10"
@@ -191,7 +191,7 @@ function Register() {
 
                         <Input
                           id="lname"
-                          placeholder="Doe"
+                          placeholder="Enter Last Name"
                           value={form.lname}
                           onChange={handleChange}
                           className="pl-10"
