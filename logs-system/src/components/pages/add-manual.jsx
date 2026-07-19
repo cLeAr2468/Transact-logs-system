@@ -136,7 +136,7 @@ function AddManual() {
 
                   <Input
                     id="fname"
-                    placeholder="John"
+                    placeholder="Enter First Name"
                     value={form.fname}
                     onChange={handleChange}
                     className="pl-10"
@@ -156,7 +156,7 @@ function AddManual() {
 
                   <Input
                     id="mname"
-                    placeholder="Optional"
+                    placeholder="Enter Middle Name"
                     value={form.mname}
                     onChange={handleChange}
                     className="pl-10"
@@ -173,7 +173,7 @@ function AddManual() {
 
                   <Input
                     id="lname"
-                    placeholder="Doe"
+                    placeholder="Enter Last Name"
                     value={form.lname}
                     onChange={handleChange}
                     className="pl-10"
@@ -191,7 +191,7 @@ function AddManual() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="student@example.com"
+                    placeholder="Enter Email Address"
                     value={form.email}
                     onChange={handleChange}
                     className="pl-10"
@@ -218,29 +218,14 @@ function AddManual() {
                   </SelectTrigger>
 
                   <SelectContent>
-                    <SelectItem value="BSIT">
-                      BSIT - Information Technology
-                    </SelectItem>
-
-                    <SelectItem value="BSCS">
-                      BSCS - Computer Science
-                    </SelectItem>
-
-                    <SelectItem value="BSIS">
-                      BSIS - Information Systems
-                    </SelectItem>
-
-                    <SelectItem value="BSBA">
-                      BSBA - Business Administration
-                    </SelectItem>
-
-                    <SelectItem value="BSED">
-                      BSED - Secondary Education
-                    </SelectItem>
-
-                    <SelectItem value="BEED">
-                      BEED - Elementary Education
-                    </SelectItem>
+                           <SelectItem value="BEED">BEED</SelectItem>
+                           <SelectItem value="BSIT">BSIT</SelectItem>
+                           <SelectItem value="BTLED">BTLED</SelectItem>
+                           <SelectItem value="BSABE">BSABE</SelectItem>
+                           <SelectItem value="BSCRIM">BSCRIM</SelectItem>
+                           <SelectItem value="BAT">BSA</SelectItem>
+                           <SelectItem value="BAT">BAT</SelectItem>
+                           <SelectItem value="BAT">BSF</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
