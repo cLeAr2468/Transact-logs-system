@@ -50,14 +50,9 @@ export default function Reports() {
     completion_rate: 0
   });
   const [purposeData, setPurposeData] = useState([]);
-  const [monthlyData, setMonthlyData] = useState([]);
   const [recentReports, setRecentReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  
-  // Date range filters for charts
-  const [chartStartDate, setChartStartDate] = useState("");
-  const [chartEndDate, setChartEndDate] = useState("");
   
   // Export dialog state
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -72,26 +67,15 @@ export default function Reports() {
   const API_BASE_URL = import.meta.env.VITE_API_URL || "https://logs-server-system-production.up.railway.app/api";
 
   useEffect(() => {
-    // Set default dates (last 12 months for charts)
+    fetchReportsData();
+    // Set default dates (current month)
     const now = new Date();
-    const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-    
-    setChartStartDate(twelveMonthsAgo.toISOString().split('T')[0]);
-    setChartEndDate(now.toISOString().split('T')[0]);
-    
-    // Set default dates for export (current month)
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     
     setStartDate(firstDay.toISOString().split('T')[0]);
     setEndDate(lastDay.toISOString().split('T')[0]);
   }, []);
-
-  useEffect(() => {
-    if (chartStartDate && chartEndDate) {
-      fetchReportsData();
-    }
-  }, [chartStartDate, chartEndDate]);
 
   const fetchReportsData = async () => {
     try {
@@ -106,27 +90,10 @@ export default function Reports() {
         'Content-Type': 'application/json',
       };
 
-      // Validate date range
-      if (new Date(chartStartDate) > new Date(chartEndDate)) {
-        toast.error('Start date must be before end date');
-        setLoading(false);
-        return;
-      }
-
-      // Build URL with date range for monthly trends
-      const trendsUrl = `${API_BASE_URL}/reports/monthly-trends?start_date=${chartStartDate}&end_date=${chartEndDate}`;
-      
-      console.log('Fetching monthly trends with:', {
-        start_date: chartStartDate,
-        end_date: chartEndDate,
-        url: trendsUrl
-      });
-
       // Fetch all data in parallel
-      const [statsRes, purposeRes, trendsRes, reportsRes] = await Promise.all([
+      const [statsRes, purposeRes, reportsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/reports/statistics`, { headers }),
         fetch(`${API_BASE_URL}/reports/by-purpose`, { headers }),
-        fetch(trendsUrl, { headers }),
         fetch(`${API_BASE_URL}/reports/recent`, { headers })
       ]);
 
@@ -138,14 +105,6 @@ export default function Reports() {
       if (purposeRes.ok) {
         const purposeResData = await purposeRes.json();
         setPurposeData(purposeResData.data);
-      }
-
-      if (trendsRes.ok) {
-        const trendsResData = await trendsRes.json();
-        console.log('Monthly trends response:', trendsResData);
-        setMonthlyData(trendsResData.data);
-      } else {
-        console.error('Trends API error:', await trendsRes.text());
       }
 
       if (reportsRes.ok) {
@@ -415,7 +374,7 @@ export default function Reports() {
           </div>
 
           {/* Charts */}
-          <div className="grid lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid lg:grid-cols-1 gap-6 mb-6">
 
                        {/* Bar Chart */}
             <Card className="border-0 shadow-sm rounded-2xl">
@@ -453,93 +412,6 @@ export default function Reports() {
                         <Tooltip />
                         <Bar dataKey="value" radius={[5, 5, 0, 0]} />
                       </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Line Chart */}
-            <Card className="border-0 shadow-sm rounded-2xl">
-              <CardContent className="p-5">
-                <div className="flex justify-between mb-5">
-                  <h3 className="font-semibold">
-                    Monthly Transaction Trends
-                  </h3>
-
-                  <MoreHorizontal className="w-5 h-5 text-gray-400" />
-                </div>
-
-                {/* Date Range Filters */}
-                <div className="flex gap-3 mb-4">
-                  <div className="flex-1">
-                    <Label className="text-xs text-gray-500">FROM</Label>
-                    <Input
-                      type="date"
-                      value={chartStartDate}
-                      onChange={(e) => setChartStartDate(e.target.value)}
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs text-gray-500">TO</Label>
-                    <Input
-                      type="date"
-                      value={chartEndDate}
-                      onChange={(e) => setChartEndDate(e.target.value)}
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setLoading(true);
-                        fetchReportsData();
-                      }}
-                      className="bg-[#15592F] hover:bg-[#104624] h-9"
-                    >
-                      Apply
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        // Set to all time (very wide range)
-                        setChartStartDate('2020-01-01');
-                        setChartEndDate(new Date().toISOString().split('T')[0]);
-                      }}
-                      className="h-9"
-                    >
-                      All
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="h-[280px]">
-                  {loading ? (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      Loading chart data...
-                    </div>
-                  ) : monthlyData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                      <p>No data available for the selected date range</p>
-                      <p className="text-xs mt-2">Try selecting a different date range</p>
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={monthlyData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke="#15592F"
-                          strokeWidth={3}
-                        />
-                      </LineChart>
                     </ResponsiveContainer>
                   )}
                 </div>
