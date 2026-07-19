@@ -106,8 +106,21 @@ export default function Reports() {
         'Content-Type': 'application/json',
       };
 
+      // Validate date range
+      if (new Date(chartStartDate) > new Date(chartEndDate)) {
+        toast.error('Start date must be before end date');
+        setLoading(false);
+        return;
+      }
+
       // Build URL with date range for monthly trends
       const trendsUrl = `${API_BASE_URL}/reports/monthly-trends?start_date=${chartStartDate}&end_date=${chartEndDate}`;
+      
+      console.log('Fetching monthly trends with:', {
+        start_date: chartStartDate,
+        end_date: chartEndDate,
+        url: trendsUrl
+      });
 
       // Fetch all data in parallel
       const [statsRes, purposeRes, trendsRes, reportsRes] = await Promise.all([
@@ -129,7 +142,10 @@ export default function Reports() {
 
       if (trendsRes.ok) {
         const trendsResData = await trendsRes.json();
+        console.log('Monthly trends response:', trendsResData);
         setMonthlyData(trendsResData.data);
+      } else {
+        console.error('Trends API error:', await trendsRes.text());
       }
 
       if (reportsRes.ok) {
@@ -474,7 +490,7 @@ export default function Reports() {
                       className="h-9 text-sm"
                     />
                   </div>
-                  <div className="flex items-end">
+                  <div className="flex items-end gap-2">
                     <Button
                       size="sm"
                       onClick={() => {
@@ -484,6 +500,18 @@ export default function Reports() {
                       className="bg-[#15592F] hover:bg-[#104624] h-9"
                     >
                       Apply
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        // Set to all time (very wide range)
+                        setChartStartDate('2020-01-01');
+                        setChartEndDate(new Date().toISOString().split('T')[0]);
+                      }}
+                      className="h-9"
+                    >
+                      All
                     </Button>
                   </div>
                 </div>
@@ -533,10 +561,6 @@ export default function Reports() {
                   View and download previously generated analytics
                 </p>
               </div>
-
-              <Button variant="secondary">
-                View History
-              </Button>
             </div>
 
             <div className="space-y-4">
