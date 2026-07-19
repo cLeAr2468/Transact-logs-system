@@ -240,15 +240,14 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
                   <SelectValue placeholder="Select course" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="BSIT">BSIT</SelectItem>
-                  <SelectItem value="BSCS">BSCS</SelectItem>
-                  <SelectItem value="BEED">BEED</SelectItem>
-                  <SelectItem value="BSEC">BSEC</SelectItem>
-                  <SelectItem value="BSCRIM">BSCRIM</SelectItem>
-                  <SelectItem value="BSA">BSA</SelectItem>
-                  <SelectItem value="BTLED">BTLED</SelectItem>
-                  <SelectItem value="BSF">BSF</SelectItem>
-                  <SelectItem value="BSABE">BSABE</SelectItem>
+                    <SelectItem value="BEED">BEED</SelectItem>
+                    <SelectItem value="BSIT">BSIT</SelectItem>
+                    <SelectItem value="BTLED">BTLED</SelectItem>
+                    <SelectItem value="BSABE">BSABE</SelectItem>
+                    <SelectItem value="BSCRIM">BSCRIM</SelectItem>
+                    <SelectItem value="BAT">BSA</SelectItem>
+                    <SelectItem value="BAT">BAT</SelectItem>
+                    <SelectItem value="BAT">BSF</SelectItem>
                 </SelectContent>
               </Select>
             </div>
