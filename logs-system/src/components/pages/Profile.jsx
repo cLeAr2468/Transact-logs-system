@@ -154,16 +154,10 @@ export default function ProfileDisplay() {
                                                             value={user.position || 'Staff'}
                                                         />
                                                         <Info
-                                                            icon={<Phone size={18} />}
-                                                            label="Contact Number"
-                                                            value={user.contact_number || 'N/A'}
-                                                        />
-                                                        <Info
                                                             icon={<Mail size={18} />}
                                                             label="Email"
                                                             value={user.email}
                                                         />
-
                                                     </div>
                                                 </CardContent>
                                             </Card>
