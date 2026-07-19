@@ -134,7 +134,7 @@ const ImportMasterlistDialog = ({ isOpen, onClose, onImportSuccess }) => {
     const csvContent = `student_id,fname,mname,lname,email,course,year_level
 23-SJ00404,Criscel jane,N,Herra,herracrisceljane@gmail.com,BSIT,4th Year
 23-SJ00364,KYLA,A,ALIMAN,alimankyla2@gmail.com,BSIT,4th Year
-23-SJ00376,RENATO,,G,BORDALLO,gananciasrheen43@gmail.com,BSIT,4th Year`;
+23-SJ00376,RENATO,G,BORDALLO,gananciasrheen43@gmail.com,BSIT,4th Year`;
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
