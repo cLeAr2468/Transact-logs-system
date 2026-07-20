@@ -432,7 +432,7 @@ function Login() {
           </div>
         </div>
 
-        <div className="flex w-1/2 items-center justify-center bg-gray-100 p-6">
+        <div className="flex w-1/2 items-center justify-center bg-gray-100 p-14">
           <Card className="w-full max-w-md rounded-2xl border border-gray-300 shadow-sm">
             <CardContent className="p-10">
               <div className="mb-8 flex flex-col items-center">
