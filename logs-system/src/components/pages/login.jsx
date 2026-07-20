@@ -290,7 +290,7 @@ function Login() {
                 />
                 <Input
                   type="email"
-                  placeholder="admin@nwssu.edu.ph"
+                  placeholder="Enter Email"
                   className="h-10 pl-10"
                   value={email}
                   onChange={(e) => {
@@ -311,7 +311,7 @@ function Login() {
                 />
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="********"
+                  placeholder="Enter Password"
                   className="h-10 pl-10 pr-10"
                   value={password}
                   onChange={(e) => {
@@ -433,7 +433,7 @@ function Login() {
         </div>
 
         <div className="flex w-1/2 items-center justify-center bg-gray-100 p-14">
-          <Card className="w-full max-w-md rounded-2xl border border-gray-300 shadow-sm">
+          <Card className="w-full max-w-lg rounded-2xl border border-gray-300 shadow-sm">
             <CardContent className="p-10">
               <div className="mb-8 flex flex-col items-center">
                 <img
@@ -459,7 +459,7 @@ function Login() {
                   />
                   <Input
                     type="email"
-                    placeholder="admin@nwssu.edu.ph"
+                    placeholder="Enter Email"
                     className="h-11 pl-10"
                     value={email}
                     onChange={(e) => {
@@ -480,7 +480,7 @@ function Login() {
                   />
                   <Input
                     type={showPassword ? "text" : "password"}
-                    placeholder="********"
+                    placeholder="Enter Password"
                     className="h-11 pl-10 pr-10"
                     value={password}
                     onChange={(e) => {
