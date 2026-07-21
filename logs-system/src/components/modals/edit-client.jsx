@@ -19,6 +19,9 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
     mname: '',
     lname: '',
     email: '',
+    barangay: '',
+    municipality: '',
+    province: '',
     course: '',
     year_level: '',
     status: '',
@@ -35,6 +38,9 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
         mname: client.mname || '',
         lname: client.lname || '',
         email: client.email || '',
+        barangay: client.barangay || '',
+        municipality: client.municipality || '',
+        province: client.province || '',
         course: client.course || '',
         year_level: client.year_level || '',
         status: client.status || 'Active',
@@ -226,6 +232,54 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter email address"
+                className="w-full"
+                disabled={loading}
+              />
+            </div>
+
+            {/* Barangay */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Barangay <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                name="barangay"
+                value={formData.barangay}
+                onChange={handleInputChange}
+                placeholder="Enter barangay"
+                className="w-full"
+                disabled={loading}
+              />
+            </div>
+
+            {/* Municipality */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Municipality <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                name="municipality"
+                value={formData.municipality}
+                onChange={handleInputChange}
+                placeholder="Enter municipality"
+                className="w-full"
+                disabled={loading}
+              />
+            </div>
+
+            {/* Province */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Province <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                name="province"
+                value={formData.province}
+                onChange={handleInputChange}
+                placeholder="Enter province"
                 className="w-full"
                 disabled={loading}
               />

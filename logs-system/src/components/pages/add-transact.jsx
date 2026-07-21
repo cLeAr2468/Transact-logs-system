@@ -31,12 +31,6 @@ export default function TransactionForm() {
   const [selectedTime, setSelectedTime] = useState('09:30 AM');
   const [scheduleDate, setScheduleDate] = useState('');
   const [purpose, setPurpose] = useState('');
-  
-  // Address fields
-  const [streetHouseNo, setStreetHouseNo] = useState('');
-  const [barangay, setBarangay] = useState('');
-  const [municipality, setMunicipality] = useState('');
-  const [province, setProvince] = useState('');
 
   // Get today's date in YYYY-MM-DD format for min attribute
   const today = new Date().toISOString().split('T')[0];
@@ -136,8 +130,8 @@ export default function TransactionForm() {
       return;
     }
 
-    if (!streetHouseNo || !barangay || !municipality || !province) {
-      toast.error('Please fill in all address fields');
+    if (!userData.barangay || !userData.municipality || !userData.province) {
+      toast.error('Student address information is incomplete. Please update student profile first.');
       return;
     }
 
@@ -165,10 +159,9 @@ export default function TransactionForm() {
         body: JSON.stringify({
           student_id: studentId,
           purpose: purpose,
-          street_house_no: streetHouseNo,
-          brgy: barangay,
-          municipality: municipality,
-          province: province,
+          brgy: userData.barangay,
+          municipality: userData.municipality,
+          province: userData.province,
           schedule_date: scheduleDate,
           time_slot: selectedTime
         })
@@ -395,39 +388,53 @@ export default function TransactionForm() {
                     </div>
                   </div>
 
-                  {/* ADDRESS */}
+                  {/* ADDRESS - READ ONLY FROM USER PROFILE */}
                   <div>
                     <h3 className="flex items-center gap-2 font-semibold mb-4">
                       <MapPin size={16} />
-                      Residential Address
+                      Residential Address (from student profile)
                     </h3>
 
-                    <div className="grid grid-cols-2 gap-6">
-                      <Input 
-                        placeholder="Street / House No." 
-                        value={streetHouseNo}
-                        onChange={(e) => setStreetHouseNo(e.target.value)}
-                        disabled={!isUserValidated}
-                      />
-                      <Input 
-                        placeholder="Barangay" 
-                        value={barangay}
-                        onChange={(e) => setBarangay(e.target.value)}
-                        disabled={!isUserValidated}
-                      />
-                      <Input 
-                        placeholder="City / Municipality" 
-                        value={municipality}
-                        onChange={(e) => setMunicipality(e.target.value)}
-                        disabled={!isUserValidated}
-                      />
-                      <Input 
-                        placeholder="Province" 
-                        value={province}
-                        onChange={(e) => setProvince(e.target.value)}
-                        disabled={!isUserValidated}
-                      />
+                    <div className="grid grid-cols-3 gap-6">
+                      <div>
+                        <label className="text-sm text-gray-600 mb-2 block">
+                          Barangay
+                        </label>
+                        <Input 
+                          value={userData?.barangay || 'Not provided'} 
+                          readOnly 
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600 mb-2 block">
+                          Municipality
+                        </label>
+                        <Input 
+                          value={userData?.municipality || 'Not provided'} 
+                          readOnly 
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600 mb-2 block">
+                          Province
+                        </label>
+                        <Input 
+                          value={userData?.province || 'Not provided'} 
+                          readOnly 
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      </div>
                     </div>
+                    {userData && (!userData.barangay || !userData.municipality || !userData.province) && (
+                      <p className="text-xs text-orange-600 mt-2">
+                        ⚠️ Address information incomplete. Please update student profile before creating transaction.
+                      </p>
+                    )}
                   </div>
 
                   {/* MORNING TIME */}

@@ -40,6 +40,9 @@ function Register() {
     mname: "",
     lname: "",
     email: "",
+    barangay: "",
+    municipality: "",
+    province: "",
     course: "",
     year_level: "",
     password: "",
@@ -72,6 +75,9 @@ function Register() {
         mname: "",
         lname: "",
         email: "",
+        barangay: "",
+        municipality: "",
+        province: "",
         course: "",
         year_level: "",
         password: "",
@@ -109,9 +115,8 @@ function Register() {
 
               <CardContent className="p-6">
                 <form onSubmit={handleSubmit}>
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    {/* Student ID */}
-                    <div className="space-y-2">
+                  {/* Student ID */}
+                    <div className="space-y-2 mb-4">
                       <Label htmlFor="student_id">Student ID</Label>
 
                       <div className="relative">
@@ -127,6 +132,8 @@ function Register() {
                         />
                       </div>
                     </div>
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    
 
                     {/* Email */}
                     <div className="space-y-2">
@@ -167,14 +174,14 @@ function Register() {
 
                     {/* Middle Name */}
                     <div className="space-y-2">
-                      <Label htmlFor="mname">Middle Name</Label>
+                      <Label htmlFor="mname">Middle Name (Optional)</Label>
 
                       <div className="relative">
                         <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
 
                         <Input
                           id="mname"
-                          placeholder="Enter Middle Name"
+                          placeholder="Enter Middle Name (Optional)"
                           value={form.mname}
                           onChange={handleChange}
                           className="pl-10"
@@ -266,6 +273,45 @@ function Register() {
                         </SelectContent>
                       </Select>
                     </div>
+                                  <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  Barangay:
+                </label>
+                <Input
+                  id="barangay"
+                  placeholder="Barangay"
+                  className="h-9 border border-gray-300 bg-white text-sm"
+                  value={form.barangay}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  City/Municipality:
+                </label>
+                <Input
+                  id="municipality"
+                  placeholder="City/Municipality"
+                  className="h-9 border border-gray-300 bg-white text-sm"
+                  value={form.municipality}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  Province:
+                </label>
+                <Input
+                  id="province"
+                  placeholder="Province"
+                  className="h-9 border border-gray-300 bg-white text-sm"
+                  value={form.province}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
                     {/* Password */}
                     <div className="space-y-2 md:col-span-1">

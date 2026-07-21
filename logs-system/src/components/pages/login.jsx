@@ -261,10 +261,10 @@ function Login() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gray-100">
       {/* MOBILE VIEW - Full width login card */}
       <div className="flex flex-1 items-center justify-center bg-gray-100 p-4 lg:hidden">
-        <Card className="w-full max-w-md rounded-2xl border border-gray-300 shadow-sm">
+        <Card className="w-full max-w-lg rounded-2xl border border-gray-300 shadow-sm">
           <CardContent className="p-6">
             <div className="mb-6 flex flex-col items-center">
               <img
