@@ -467,7 +467,7 @@ export default function TransactionForm() {
                   <div>
                     <h3 className="text-sm font-medium mb-3">Morning</h3>
 
-                    <div className="grid grid-cols-6 gap-3">
+                    <div className="grid grid-cols-4 gap-3">
                       {morningTimes.map((time) => (
                         <button
                           key={time}
@@ -489,7 +489,7 @@ export default function TransactionForm() {
                   <div>
                     <h3 className="text-sm font-medium mb-3">Afternoon</h3>
 
-                    <div className="grid grid-cols-6 gap-3">
+                    <div className="grid grid-cols-4 gap-3">
                       {afternoonTimes.map((time) => (
                         <button
                           key={time}

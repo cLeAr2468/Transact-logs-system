@@ -261,7 +261,7 @@ function Login() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen">
       {/* MOBILE VIEW - Full width login card */}
       <div className="flex flex-1 items-center justify-center bg-gray-100 p-4 lg:hidden">
         <Card className="w-full max-w-lg rounded-2xl border border-gray-300 shadow-sm">
@@ -413,7 +413,7 @@ function Login() {
         />
       </div>
 
-      <div className="hidden min-h-screen lg:flex lg:flex-row">
+      <div className="hidden w-full min-h-screen lg:flex lg:flex-row">
         <div className="relative flex w-1/2">
           <img
             src={Image1}
@@ -432,7 +432,7 @@ function Login() {
           </div>
         </div>
 
-        <div className="flex w-1/2 items-center justify-center bg-gray-100 p-14">
+        <div className="flex w-1/2 items-center justify-center bg-gray-100">
           <Card className="w-full max-w-lg rounded-2xl border border-gray-300 shadow-sm">
             <CardContent className="p-10">
               <div className="mb-8 flex flex-col items-center">
