@@ -24,6 +24,7 @@ import {
   Megaphone,
   LogOut,
   UserCircle,
+  Target,
 } from "lucide-react";
 
 const items = [
@@ -63,6 +64,12 @@ const items = [
     url: "/transact",
     icon: ArrowLeftRight,
     relatedRoutes: ["/add-transact"],
+  },
+  {
+    title: "Manage Purpose",
+    url: "/manage-purpose",
+    icon: Target,
+    relatedRoutes: [],
   },
   {
     title: "Reports",

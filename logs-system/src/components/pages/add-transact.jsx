@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Calendar, MapPin, Check, ArrowLeft, Loader2 } from 'lucide-react';
 import { Label } from '../ui/label';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
+import { getAllPurposes } from '../../api/purposeApi';
 import { toast } from 'sonner';
 
 export default function TransactionForm() {
@@ -26,11 +27,27 @@ export default function TransactionForm() {
   const [studentId, setStudentId] = useState('');
   const [userData, setUserData] = useState(null);
   const [isUserValidated, setIsUserValidated] = useState(false);
+  const [purposes, setPurposes] = useState([]);
   
   // ✅ SINGLE STATE FOR BOTH MORNING & AFTERNOON
   const [selectedTime, setSelectedTime] = useState('09:30 AM');
   const [scheduleDate, setScheduleDate] = useState('');
   const [purpose, setPurpose] = useState('');
+
+  // Fetch purposes on component mount
+  useEffect(() => {
+    fetchPurposes();
+  }, []);
+
+  const fetchPurposes = async () => {
+    try {
+      const response = await getAllPurposes();
+      setPurposes(response.purposes || []);
+    } catch (error) {
+      console.error('Error fetching purposes:', error);
+      toast.error('Failed to load appointment purposes');
+    }
+  };
 
   // Get today's date in YYYY-MM-DD format for min attribute
   const today = new Date().toISOString().split('T')[0];
@@ -326,12 +343,17 @@ export default function TransactionForm() {
                   <SelectValue placeholder="Select purpose" />
                 </SelectTrigger>
                 <SelectContent className="w-full">
-                  <SelectItem value="ID Validation">ID Validation</SelectItem>
-                  <SelectItem value="scholarship">Scholarship</SelectItem>
-                  <SelectItem value="Good Moral">Good Moral</SelectItem>
-                  <SelectItem value="Assistance in Scholarship">Assistance in Scholarship</SelectItem>
-                  <SelectItem value="ID Request Form">ID Request Form</SelectItem>
-                  <SelectItem value="Student Clearance">Student Clearance</SelectItem>
+                  {purposes.length === 0 ? (
+                    <SelectItem value="" disabled>
+                      No purposes available
+                    </SelectItem>
+                  ) : (
+                    purposes.map((purposeItem) => (
+                      <SelectItem key={purposeItem.id} value={purposeItem.name}>
+                        {purposeItem.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
