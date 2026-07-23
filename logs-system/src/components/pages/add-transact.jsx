@@ -198,8 +198,14 @@ export default function TransactionForm() {
 
       if (response.ok) {
         toast.success('Transaction created successfully!');
-        // Reset form or navigate
-        navigate('/add-transact');
+        
+        // Reset form
+        setStudentId('');
+        setUserData(null);
+        setIsUserValidated(false);
+        setPurpose('');
+        setScheduleDate('');
+        setSelectedTime('09:30 AM');
       } else {
         toast.error(data.message || 'Failed to create transaction');
       }
@@ -363,105 +369,58 @@ export default function TransactionForm() {
             </div>
                   </div>
 
-                  {/* CLIENT + NAME */}
-                  <div className="grid grid-cols-4 gap-6">
-
-                    <div>
-                      <label className="text-sm text-gray-600 mb-2 block">
-                        First Name
-                      </label>
-                      <Input 
-                        value={userData?.fname || ''} 
-                        readOnly 
-                        disabled
-                        className="bg-gray-50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-gray-600 mb-2 block">
-                        Middle Name
-                      </label>
-                      <Input 
-                        value={userData?.mname || ''} 
-                        readOnly 
-                        disabled
-                        className="bg-gray-50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-gray-600 mb-2 block">
-                        Last Name
-                      </label>
-                      <Input 
-                        value={userData?.lname || ''} 
-                        readOnly 
-                        disabled
-                        className="bg-gray-50"
-                      />
-                    </div>
-                                        <div>
-                      <label className="text-sm text-gray-600 mb-2 block">
-                        Course
-                      </label>
-                      <Input 
-                        value={userData?.course || ''} 
-                        readOnly 
-                        disabled
-                        className="bg-gray-50"
-                      />
-                    </div>
-                  </div>
-
-                  {/* ADDRESS - READ ONLY FROM USER PROFILE */}
-                  <div>
-                    <h3 className="flex items-center gap-2 font-semibold mb-4">
-                      <MapPin size={16} />
-                      Residential Address (from student profile)
-                    </h3>
-
-                    <div className="grid grid-cols-3 gap-6">
-                      <div>
-                        <label className="text-sm text-gray-600 mb-2 block">
-                          Barangay
-                        </label>
-                        <Input 
-                          value={userData?.barangay || 'Not provided'} 
-                          readOnly 
-                          disabled
-                          className="bg-gray-50"
-                        />
+                  {/* USER INFORMATION - Display Only (similar to new-appointment.jsx) */}
+                  {isUserValidated && userData && (
+                    <div className="space-y-4">
+                      {/* Name Section */}
+                      <div className="rounded-lg bg-gray-50 p-4 border-2 border-gray-200">
+                        <h3 className="text-base font-semibold text-slate-800 mb-3">
+                          Student Information
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="flex">
+                            <span className="font-medium text-slate-600 w-32">Full Name:</span>
+                            <span className="text-slate-800">
+                              {`${userData.fname} ${userData.mname ? userData.mname + ' ' : ''}${userData.lname}`}
+                            </span>
+                          </div>
+                          <div className="flex">
+                            <span className="font-medium text-slate-600 w-32">Course:</span>
+                            <span className="text-slate-800">{userData.course || 'Not provided'}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-sm text-gray-600 mb-2 block">
-                          Municipality
-                        </label>
-                        <Input 
-                          value={userData?.municipality || 'Not provided'} 
-                          readOnly 
-                          disabled
-                          className="bg-gray-50"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-600 mb-2 block">
-                          Province
-                        </label>
-                        <Input 
-                          value={userData?.province || 'Not provided'} 
-                          readOnly 
-                          disabled
-                          className="bg-gray-50"
-                        />
+
+                      {/* Address Section */}
+                      <div className="rounded-lg bg-gray-50 p-4 border-2 border-gray-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <MapPin className="h-5 w-5 text-green-700" />
+                          <h3 className="text-base font-semibold text-slate-800">
+                            Residential Address
+                          </h3>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex">
+                            <span className="font-medium text-slate-600 w-32">Barangay:</span>
+                            <span className="text-slate-800">{userData.barangay || 'Not provided'}</span>
+                          </div>
+                          <div className="flex">
+                            <span className="font-medium text-slate-600 w-32">Municipality:</span>
+                            <span className="text-slate-800">{userData.municipality || 'Not provided'}</span>
+                          </div>
+                          <div className="flex">
+                            <span className="font-medium text-slate-600 w-32">Province:</span>
+                            <span className="text-slate-800">{userData.province || 'Not provided'}</span>
+                          </div>
+                        </div>
+                        {(!userData.barangay || !userData.municipality || !userData.province) && (
+                          <p className="text-xs text-orange-600 mt-3 italic">
+                            ⚠️ Address information incomplete. Please update student profile before creating transaction.
+                          </p>
+                        )}
                       </div>
                     </div>
-                    {userData && (!userData.barangay || !userData.municipality || !userData.province) && (
-                      <p className="text-xs text-orange-600 mt-2">
-                        ⚠️ Address information incomplete. Please update student profile before creating transaction.
-                      </p>
-                    )}
-                  </div>
+                  )}
 
                   {/* MORNING TIME */}
                   <div>

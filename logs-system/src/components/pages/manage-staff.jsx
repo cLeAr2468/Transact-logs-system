@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Pagination } from '@/components/ui/pagination';
 import { Link } from 'react-router-dom';
 import {
   Select,
@@ -34,6 +35,8 @@ const Managestaff = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch staff data on component mount
   useEffect(() => {
@@ -101,6 +104,17 @@ const Managestaff = () => {
     
     return matchesSearch && matchesStatus;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStatus]);
 
   const handleEditClick = (user) => {
     setSelectedStaff(user);
@@ -258,7 +272,7 @@ const Managestaff = () => {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredUsers.map((user) => (
+                          paginatedUsers.map((user) => (
                             <TableRow key={user.id}>
                               <TableCell className="font-medium">{user.staff_id}</TableCell>
                               <TableCell className="font-medium">{`${user.fname} ${user.mname || ''} ${user.lname}`}</TableCell>
@@ -297,6 +311,15 @@ const Managestaff = () => {
                         )}
                       </TableBody>
                     </Table>
+                  )}
+                  
+                  {/* Pagination */}
+                  {!loading && filteredUsers.length > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
                   )}
                 </div>
               </CardContent>

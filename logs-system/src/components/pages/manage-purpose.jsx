@@ -12,6 +12,7 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
+import { Pagination } from '@/components/ui/pagination';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '../layout/Asidebar';
 import AddPurposeDialog from '@/components/modals/add-purpose';
@@ -26,6 +27,8 @@ const ManagePurpose = () => {
   const [purposes, setPurposes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch purposes data on component mount
   useEffect(() => {
@@ -67,6 +70,17 @@ const ManagePurpose = () => {
     const query = searchQuery.toLowerCase();
     return purpose.name.toLowerCase().includes(query);
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredPurposes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPurposes = filteredPurposes.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const handleAddClick = () => {
     setIsAddDialogOpen(true);
@@ -213,7 +227,7 @@ const ManagePurpose = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredPurposes.length === 0 ? (
+                        {paginatedPurposes.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={3} className="text-center py-12">
                               <Target className="w-12 h-12 mx-auto mb-2 opacity-30 text-gray-400" />
@@ -225,7 +239,7 @@ const ManagePurpose = () => {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredPurposes.map((purpose) => (
+                          paginatedPurposes.map((purpose) => (
                             <TableRow key={purpose.id}>
                               <TableCell className="font-medium">{purpose.id}</TableCell>
                               <TableCell className="font-medium">{purpose.name}</TableCell>
@@ -254,6 +268,15 @@ const ManagePurpose = () => {
                         )}
                       </TableBody>
                     </Table>
+                  )}
+                  
+                  {/* Pagination */}
+                  {!loading && filteredPurposes.length > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
                   )}
                 </div>
               </CardContent>
