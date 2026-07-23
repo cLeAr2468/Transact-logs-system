@@ -149,14 +149,14 @@ function AddManual() {
 
               {/* Middle Name */}
               <div className="space-y-2">
-                <Label htmlFor="mname">Middle Name</Label>
+                <Label htmlFor="mname">Middle Name (Optional)</Label>
 
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
 
                   <Input
                     id="mname"
-                    placeholder="Enter Middle Name"
+                    placeholder="Enter Middle Name (Optional)"
                     value={form.mname}
                     onChange={handleChange}
                     className="pl-10"
