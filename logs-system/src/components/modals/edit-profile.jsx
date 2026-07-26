@@ -119,12 +119,13 @@ export default function EditProfileDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Middle Name</Label>
+            <Label>Middle Name (Optional)</Label>
 
             <Input
               name="middlename"
               value={form.middlename || ''}
               onChange={handleChange}
+              placeholder="Enter middle name (Optional)"
             />
           </div>
 

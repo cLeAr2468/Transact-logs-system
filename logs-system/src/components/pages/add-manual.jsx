@@ -79,10 +79,31 @@ function AddManual() {
     } catch (error) {
       console.error(error);
 
-      toast.error(
-        error.message ||
-          "Failed to add student to masterlist. Please try again."
-      );
+      // Handle validation errors
+      if (error.errors) {
+        // Check for specific field errors
+        if (error.errors.student_id) {
+          const errorMessage = Array.isArray(error.errors.student_id) 
+            ? error.errors.student_id[0] 
+            : error.errors.student_id;
+          toast.error(errorMessage);
+        } else if (error.errors.email) {
+          const errorMessage = Array.isArray(error.errors.email) 
+            ? error.errors.email[0] 
+            : error.errors.email;
+          toast.error(errorMessage);
+        } else {
+          // Get first error for other fields
+          const firstError = Object.values(error.errors)[0];
+          const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error(
+          error.message ||
+            "Failed to add student to masterlist. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }

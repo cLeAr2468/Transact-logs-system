@@ -105,10 +105,26 @@ function AddStaff() {
       
       // Handle validation errors
       if (error.errors) {
-        const firstError = Object.values(error.errors)[0];
-        const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
-        setError(errorMessage);
-        toast.error(errorMessage);
+        // Check for specific field errors
+        if (error.errors.staff_id) {
+          const errorMessage = Array.isArray(error.errors.staff_id) 
+            ? error.errors.staff_id[0] 
+            : error.errors.staff_id;
+          setError(errorMessage);
+          toast.error(errorMessage);
+        } else if (error.errors.email) {
+          const errorMessage = Array.isArray(error.errors.email) 
+            ? error.errors.email[0] 
+            : error.errors.email;
+          setError(errorMessage);
+          toast.error(errorMessage);
+        } else {
+          // Get first error for other fields
+          const firstError = Object.values(error.errors)[0];
+          const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+          setError(errorMessage);
+          toast.error(errorMessage);
+        }
       } else {
         const errorMessage = error.message || "Registration failed. Please try again.";
         setError(errorMessage);
@@ -203,14 +219,14 @@ function AddStaff() {
 
               {/* Middle Name */}
               <div className="space-y-2">
-                <Label htmlFor="mname">Middle Name</Label>
+                <Label htmlFor="mname">Middle Name (Optional)</Label>
 
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
 
                   <Input
                     id="mname"
-                    placeholder="Enter Middle Name"
+                    placeholder="Enter Middle Name (Optional)"
                     value={form.mname}
                     onChange={handleChange}
                     className="pl-10"

@@ -87,10 +87,33 @@ function Register() {
     } catch (error) {
       console.error(error.response?.data);
 
-      toast.error(
-        error.response?.data?.message ||
-        "Registration failed. Please try again."
-      );
+      // Handle validation errors
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        
+        // Check for specific field errors
+        if (errors.student_id) {
+          const errorMessage = Array.isArray(errors.student_id) 
+            ? errors.student_id[0] 
+            : errors.student_id;
+          toast.error(errorMessage);
+        } else if (errors.email) {
+          const errorMessage = Array.isArray(errors.email) 
+            ? errors.email[0] 
+            : errors.email;
+          toast.error(errorMessage);
+        } else {
+          // Get first error for other fields
+          const firstError = Object.values(errors)[0];
+          const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error(
+          error.response?.data?.message ||
+          "Registration failed. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }

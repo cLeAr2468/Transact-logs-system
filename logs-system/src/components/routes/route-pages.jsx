@@ -15,26 +15,30 @@ import AddStaff from "@/components/pages/add-staff";
 import RecentTransact from "@/components/pages/recent-transact";
 import Profile from "@/components/pages/profile";
 import ManagePurpose from "@/components/pages/manage-purpose";
+import ProtectedRoute from "./ProtectedRoute";
 
 function Reroutes() {
   return (
     <Routes>
+      {/* Public Route - Login */}
       <Route path="/" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/manage-users" element={<Staff />} />
-      <Route path="/manage-client" element={<Client />} />
-      <Route path="/transact" element={<Transaction />} />
-      <Route path="/reports" element={<Reports />} />
-      <Route path="/announce" element={<Announcement />} />
-      <Route path="/add-transact" element={<AddTransaction />} />
-      <Route path="/add-announcement" element={<AddAnnouncement />} />
-      <Route path="/Client-register" element={<Register />} />
-      <Route path="/master-list" element={<Masteerlist />} />
-      <Route path="/add-manual" element={<AddManual />} />
-      <Route path="/add-staff" element={<AddStaff />} />
-      <Route path="/recent-transact" element={<RecentTransact />} />
-      <Route path="/manage-purpose" element={<ManagePurpose />} />
+      
+      {/* Protected Routes - Require Authentication */}
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/manage-users" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
+      <Route path="/manage-client" element={<ProtectedRoute><Client /></ProtectedRoute>} />
+      <Route path="/transact" element={<ProtectedRoute><Transaction /></ProtectedRoute>} />
+      <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+      <Route path="/announce" element={<ProtectedRoute><Announcement /></ProtectedRoute>} />
+      <Route path="/add-transact" element={<ProtectedRoute><AddTransaction /></ProtectedRoute>} />
+      <Route path="/add-announcement" element={<ProtectedRoute><AddAnnouncement /></ProtectedRoute>} />
+      <Route path="/Client-register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
+      <Route path="/master-list" element={<ProtectedRoute><Masteerlist /></ProtectedRoute>} />
+      <Route path="/add-manual" element={<ProtectedRoute><AddManual /></ProtectedRoute>} />
+      <Route path="/add-staff" element={<ProtectedRoute><AddStaff /></ProtectedRoute>} />
+      <Route path="/recent-transact" element={<ProtectedRoute><RecentTransact /></ProtectedRoute>} />
+      <Route path="/manage-purpose" element={<ProtectedRoute><ManagePurpose /></ProtectedRoute>} />
     </Routes>
   );
 }

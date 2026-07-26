@@ -173,14 +173,14 @@ export default function EditStaffDialog({ isOpen, onClose, staff, onStaffUpdated
              {/* Middle Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Middle Name
+                Middle Name <span className="text-gray-400 text-xs">(Optional)</span>
               </label>
               <Input
                 type="text"
                 name="mname"
                 value={formData.mname}
                 onChange={handleInputChange}
-                placeholder="Enter middle name"
+                placeholder="Enter middle name (Optional)"
               />
             </div>
 
