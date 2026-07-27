@@ -7,7 +7,7 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       const token = localStorage.getItem('admin_token');
       
       if (!token) {
@@ -16,29 +16,10 @@ const ProtectedRoute = ({ children }) => {
         return;
       }
 
-      try {
-        // Verify token with backend
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/verify`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-          }
-        });
-
-        if (response.ok) {
-          setIsAuthenticated(true);
-        } else {
-          // Token invalid, clear it
-          localStorage.removeItem('admin_token');
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
-        // Network error or token invalid
-        localStorage.removeItem('admin_token');
-        setIsAuthenticated(false);
-      } finally {
-        setIsChecking(false);
-      }
+      // Token exists, consider authenticated
+      // Backend will handle token validation on actual API calls
+      setIsAuthenticated(true);
+      setIsChecking(false);
     };
 
     checkAuth();
