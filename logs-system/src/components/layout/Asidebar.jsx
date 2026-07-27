@@ -2,7 +2,6 @@
 
 import Logo from "@/assets/nwssu 1.png";
 import { NavLink, useLocation } from "react-router-dom";
-import { Link } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -184,14 +183,18 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="bg-[#15592F] p-4 border-t border-white/20 h-14 flex">
-        <Link to="/">
-          <SidebarMenuButton className="h-14 text-white hover:bg-white/10 hover:text-white flex gap-3 justify-start px-3">
-            <div className="w-full h-6 shrink-0 flex items-center justify-center gap-3 mb-6">
-              <LogOut className="w-6 h-6 shrink-0" />
-              <span className="text-[18px]">Log out</span>
-            </div>
-          </SidebarMenuButton>
-        </Link>
+        <SidebarMenuButton 
+          onClick={() => {
+            localStorage.clear();
+            window.location.href = '/';
+          }}
+          className="h-14 text-white hover:bg-white/10 hover:text-white flex gap-3 justify-start px-3 cursor-pointer"
+        >
+          <div className="w-full h-6 shrink-0 flex items-center justify-center gap-3 mb-6">
+            <LogOut className="w-6 h-6 shrink-0" />
+            <span className="text-[18px]">Log out</span>
+          </div>
+        </SidebarMenuButton>
       </SidebarFooter>
     </Sidebar>
   );
