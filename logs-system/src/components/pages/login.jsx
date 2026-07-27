@@ -12,6 +12,7 @@ import VerifyOtpDialog from "@/components/modals/otp-dialog";
 import CreateNewPasswordDialog from "@/components/modals/new-password";
 import { adminLogin, forgotPassword, verifyOtp, resendOtp, resetPassword } from "@/api/adminApi";
 import { toast } from "sonner";
+import { setSession, isSessionActive } from "@/utils/session";
 
 function Login() {
   const navigate = useNavigate();
@@ -36,8 +37,7 @@ function Login() {
 
   // Check authentication immediately on mount
   useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    if (token) {
+    if (isSessionActive()) {
       // Redirect immediately without rendering login
       window.location.replace('/dashboard');
     }
@@ -104,20 +104,18 @@ function Login() {
         userName: userData?.full_name || userData?.email 
       });
 
-      // Store authentication data
-      localStorage.setItem("token", token);
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("admin_token", token);
+      // Store authentication data using session
+      setSession(token, userData);
 
-      localStorage.setItem("user", JSON.stringify(userData ?? {}));
-      localStorage.setItem("admin_user", JSON.stringify(userData ?? {}));
-
+      // Also store role if available
       if (roleValue) {
         localStorage.setItem("role", String(roleValue));
         localStorage.setItem("userRole", String(roleValue));
+        sessionStorage.setItem("role", String(roleValue));
       }
 
       localStorage.setItem("isLoggedIn", "true");
+      sessionStorage.setItem("isLoggedIn", "true");
 
       if (rememberMe) {
         localStorage.setItem("remember_admin", "true");

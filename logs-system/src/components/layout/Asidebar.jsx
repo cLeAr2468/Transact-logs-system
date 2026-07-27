@@ -13,6 +13,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import { clearSession } from "@/utils/session";
 
 import {
   LayoutDashboard,
@@ -182,15 +183,15 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="bg-[#15592F] p-4 border-t border-white/20 h-14 flex">
+      <SidebarFooter className="bg-[#15592F] p-4 border-t border-white/20 h-20 flex">
         <SidebarMenuButton 
           onClick={() => {
-            localStorage.clear();
+            clearSession();
             window.location.href = '/';
           }}
           className="h-14 text-white hover:bg-white/10 hover:text-white flex gap-3 justify-start px-3 cursor-pointer"
         >
-          <div className="w-full h-6 shrink-0 flex items-center justify-center gap-3 mb-6">
+          <div className="w-full h-6 shrink-0 flex items-center justify-center gap-3">
             <LogOut className="w-6 h-6 shrink-0" />
             <span className="text-[18px]">Log out</span>
           </div>

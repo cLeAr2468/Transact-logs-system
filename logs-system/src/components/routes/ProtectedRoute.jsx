@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { isSessionActive } from '@/utils/session';
 
 const ProtectedRoute = ({ children }) => {
   const [isChecking, setIsChecking] = useState(true);
@@ -8,16 +9,15 @@ const ProtectedRoute = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('admin_token');
+      const sessionActive = isSessionActive();
       
-      if (!token) {
+      if (!sessionActive) {
         setIsAuthenticated(false);
         setIsChecking(false);
         return;
       }
 
-      // Token exists, consider authenticated
-      // Backend will handle token validation on actual API calls
+      // Session is active, user is authenticated
       setIsAuthenticated(true);
       setIsChecking(false);
     };
