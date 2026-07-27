@@ -34,26 +34,14 @@ function Login() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
-  // Redirect if already logged in
+  // Check authentication immediately on mount
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     if (token) {
-      navigate('/dashboard', { replace: true });
+      // Redirect immediately without rendering login
+      window.location.replace('/dashboard');
     }
-  }, [navigate]);
-
-  // Block navigation back to login if already authenticated
-  useEffect(() => {
-    const handlePopState = () => {
-      const token = localStorage.getItem('admin_token');
-      if (token) {
-        navigate('/dashboard', { replace: true });
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [navigate]);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
