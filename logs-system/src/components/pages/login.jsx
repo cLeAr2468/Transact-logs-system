@@ -42,6 +42,19 @@ function Login() {
     }
   }, [navigate]);
 
+  // Block navigation back to login if already authenticated
+  useEffect(() => {
+    const handlePopState = () => {
+      const token = localStorage.getItem('admin_token');
+      if (token) {
+        navigate('/dashboard', { replace: true });
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
