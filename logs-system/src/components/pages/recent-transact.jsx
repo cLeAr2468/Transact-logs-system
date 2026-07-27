@@ -157,7 +157,7 @@ const RecentTransact = () => {
             {/* Filters */}
             <Card className="mb-6 bg-white border-0 shadow-sm">
               <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col md:flex-row gap-4 z-[9999] absolute">
                   {/* Date Range Picker */}
                   <div className="flex-shrink-0 max-h-full">
                     <DateRangePicker
@@ -187,14 +187,6 @@ const RecentTransact = () => {
                     </Button>
                   </div>
                 </div>
-
-                {/* Date Range Display */}
-                {dateRange.start && dateRange.end && (
-                  <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4" />
-                    <span>Showing transactions from {formatDateRange()}</span>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
