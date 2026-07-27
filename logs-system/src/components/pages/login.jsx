@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Image1 from "@/assets/login.png";
 import Image2 from "@/assets/nwssu 1.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ForgotPass from "@/components/modals/forgot-pass";
@@ -33,6 +33,14 @@ function Login() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
