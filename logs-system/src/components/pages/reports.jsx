@@ -56,7 +56,7 @@ export default function Reports() {
   
   // Export dialog state
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [reportType, setReportType] = useState("Monthly Transaction Summary");
+  const [reportType, setReportType] = useState("Student Affairs Services Summary");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [fileFormat, setFileFormat] = useState("pdf");
@@ -435,58 +435,88 @@ export default function Reports() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              {loading ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Loading reports...
-                </div>
-              ) : recentReports.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No recent reports available. Click "Export Report" to generate one.
-                </div>
-              ) : (
-                recentReports.map((report, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between border rounded-xl p-4 bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="bg-red-100 p-3 rounded-lg">
-                        <FileText className="w-5 h-5 text-red-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">
-                          {report.name}
-                        </h4>
-
-                        <p className="text-sm text-muted-foreground">
-                          Generated: {report.date}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                      <Badge variant="secondary" className="uppercase">
-                        {report.format}
-                      </Badge>
-
-                      <span className="text-sm text-muted-foreground">
-                        {report.size}
-                      </span>
-
-                      <Button
-                        size="sm"
-                        className="bg-[#15592F] hover:bg-[#104624]"
-                        onClick={() => handleDownloadReport(report.download_url)}
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading reports...
+              </div>
+            ) : recentReports.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground bg-gray-50 rounded-lg border-2 border-dashed">
+                <FileText className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                <p className="font-medium">No recent reports available</p>
+                <p className="text-sm mt-1">Click "Export Report" above to generate your first report</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Report Name</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Generated Date</th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Format</th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Size</th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentReports.map((report, index) => (
+                      <tr
+                        key={index}
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${
+                              report.format === 'PDF' ? 'bg-red-100' :
+                              report.format === 'XLSX' ? 'bg-green-100' :
+                              'bg-blue-100'
+                            }`}>
+                              {report.format === 'PDF' ? (
+                                <FileText className="w-5 h-5 text-red-600" />
+                              ) : (
+                                <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-gray-900">
+                                {report.name}
+                              </h4>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-sm text-gray-600">
+                          {report.date}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <Badge 
+                            variant="secondary" 
+                            className={`uppercase font-semibold ${
+                              report.format === 'PDF' ? 'bg-red-100 text-red-700' :
+                              report.format === 'XLSX' ? 'bg-green-100 text-green-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}
+                          >
+                            {report.format}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4 text-center text-sm text-gray-600">
+                          {report.size}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <Button
+                            size="sm"
+                            className="bg-[#15592F] hover:bg-[#104624]"
+                            onClick={() => handleDownloadReport(report.download_url)}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -509,9 +539,17 @@ export default function Reports() {
                   onChange={(e) => setReportType(e.target.value)}
                   className="w-full px-3 py-2 border rounded-md bg-gray-50"
                 >
+                  <option>Student Affairs Services Summary</option>
                   <option>Monthly Transaction Summary</option>
+                  <option>Student ID Validation Report</option>
+                  <option>Good Moral Character Certificates</option>
+                  <option>Student Clearance Forms Report</option>
+                  <option>Affidavits of Loss Report</option>
+                  <option>Student Handbooks Distribution</option>
+                  <option>Certifications and Documents Report</option>
+                  <option>Scholarship Applications Report</option>
+                  <option>Documentary Requirements Report</option>
                   <option>Detailed Transaction Report</option>
-                  <option>Purpose Analysis Report</option>
                   <option>Performance Metrics Report</option>
                 </select>
               </div>
@@ -595,47 +633,65 @@ export default function Reports() {
               {/* Include in Report */}
               <div className="space-y-3">
                 <Label>Include in Report</Label>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
+                <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-start space-x-3">
                     <Checkbox
                       id="summary"
                       checked={includeSummary}
                       onCheckedChange={setIncludeSummary}
+                      className="mt-1"
                     />
-                    <label
-                      htmlFor="summary"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Summary (status overview)
-                    </label>
+                    <div className="flex-1">
+                      <label
+                        htmlFor="summary"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Summary Overview
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Include status breakdown, total transactions, and top requested purposes
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-start space-x-3">
                     <Checkbox
                       id="details"
                       checked={includeDetails}
                       onCheckedChange={setIncludeDetails}
+                      className="mt-1"
                     />
-                    <label
-                      htmlFor="details"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Detailed Transactions
-                    </label>
+                    <div className="flex-1">
+                      <label
+                        htmlFor="details"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Detailed Transactions
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Include complete list of all transactions with student information
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-start space-x-3">
                     <Checkbox
                       id="feedback"
                       checked={includeFeedback}
                       onCheckedChange={setIncludeFeedback}
+                      className="mt-1"
                     />
-                    <label
-                      htmlFor="feedback"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Feedback Summary
-                    </label>
+                    <div className="flex-1">
+                      <label
+                        htmlFor="feedback"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Feedback Summary
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Include student feedback ratings and distribution
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
