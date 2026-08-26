@@ -10,6 +10,9 @@ import {
   FileText,
   FileSpreadsheet,
   Calendar,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 import {
@@ -63,6 +66,27 @@ export default function Reports() {
   const [includeSummary, setIncludeSummary] = useState(true);
   const [includeDetails, setIncludeDetails] = useState(true);
   const [includeFeedback, setIncludeFeedback] = useState(false);
+  
+  // Pagination state for recent reports
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [clearingReports, setClearingReports] = useState(false);
+
+  // Report type descriptions
+  const reportTypeDescriptions = {
+    "Student Affairs Services Summary": "Comprehensive summary of all student affairs services and transactions",
+    "Monthly Transaction Summary": "Monthly overview of all transaction activities",
+    "Student ID Validation Report": "Report on student ID validation and verification services",
+    "Good Moral Character Certificates": "Records of good moral character certificates issued",
+    "Student Clearance Forms Report": "Student clearance forms processing and status",
+    "Affidavits of Loss Report": "Reports of lost school IDs and affidavits issued",
+    "Student Handbooks Distribution": "Distribution records of student handbooks",
+    "Certifications and Documents Report": "Various certifications and documents issued to students",
+    "Scholarship Applications Report": "Scholarship application submissions and processing",
+    "Documentary Requirements Report": "Documentary requirements collected and organized",
+    "Detailed Transaction Report": "Detailed breakdown of all individual transactions",
+    "Performance Metrics Report": "Performance metrics and efficiency analysis"
+  };
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || "https://logs-server-system-production.up.railway.app/api";
 
@@ -121,6 +145,23 @@ export default function Reports() {
   };
 
   const handleExportReport = async () => {
+    // Validate that at least one section is selected
+    if (!includeSummary && !includeDetails && !includeFeedback) {
+      toast.error('Please select at least one section to include in the report');
+      return;
+    }
+
+    // Validate date range
+    if (!startDate || !endDate) {
+      toast.error('Please select a date range');
+      return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      toast.error('Start date must be before end date');
+      return;
+    }
+
     try {
       setExporting(true);
       const token = localStorage.getItem('admin_token');
@@ -227,6 +268,42 @@ export default function Reports() {
     } catch (error) {
       console.error('Error downloading report:', error);
       toast.error('Failed to download report');
+    }
+  };
+
+  const handleClearAllReports = async () => {
+    if (!window.confirm('Are you sure you want to clear all recent reports? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setClearingReports(true);
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/reports/clear-all`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear reports');
+      }
+
+      toast.success('All reports cleared successfully');
+      setRecentReports([]);
+      setCurrentPage(1);
+    } catch (error) {
+      console.error('Error clearing reports:', error);
+      toast.error('Failed to clear reports');
+    } finally {
+      setClearingReports(false);
     }
   };
   return (
@@ -423,7 +500,7 @@ export default function Reports() {
           <Card className="border-0 shadow-sm rounded-2xl">
             <CardContent className="p-6">
 
-            <div className="flex justify-between mb-6">
+            <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="font-semibold text-lg">
                   Recent Reports
@@ -433,6 +510,18 @@ export default function Reports() {
                   View and download previously generated analytics
                 </p>
               </div>
+              
+              {recentReports.length > 0 && (
+                <Button
+                  variant="outline"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  onClick={handleClearAllReports}
+                  disabled={clearingReports}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {clearingReports ? 'Clearing...' : 'Clear All'}
+                </Button>
+              )}
             </div>
 
             {loading ? (
@@ -446,83 +535,119 @@ export default function Reports() {
                 <p className="text-sm mt-1">Click "Export Report" above to generate your first report</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-2 border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Report Name</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Generated Date</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Format</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Size</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentReports.map((report, index) => (
-                      <tr
-                        key={index}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${
-                              report.format === 'PDF' ? 'bg-red-100' :
-                              report.format === 'XLSX' ? 'bg-green-100' :
-                              'bg-blue-100'
-                            }`}>
-                              {report.format === 'PDF' ? (
-                                <FileText className="w-5 h-5 text-red-600" />
-                              ) : (
-                                <FileSpreadsheet className="w-5 h-5 text-green-600" />
-                              )}
-                            </div>
-                            <div>
-                              <h4 className="font-medium text-gray-900">
-                                {report.name}
-                              </h4>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-sm text-gray-600">
-                          {report.date}
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <Badge 
-                            variant="secondary" 
-                            className={`uppercase font-semibold ${
-                              report.format === 'PDF' ? 'bg-red-100 text-red-700' :
-                              report.format === 'XLSX' ? 'bg-green-100 text-green-700' :
-                              'bg-blue-100 text-blue-700'
-                            }`}
-                          >
-                            {report.format}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-4 text-center text-sm text-gray-600">
-                          {report.size}
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <Button
-                            size="sm"
-                            className="bg-[#15592F] hover:bg-[#104624]"
-                            onClick={() => handleDownloadReport(report.download_url)}
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </Button>
-                        </td>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Report Name</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Generated Date</th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Format</th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Size</th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {recentReports
+                        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                        .map((report, index) => (
+                        <tr
+                          key={index}
+                          className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-lg ${
+                                report.format === 'PDF' ? 'bg-red-100' :
+                                report.format === 'XLSX' ? 'bg-green-100' :
+                                'bg-blue-100'
+                              }`}>
+                                {report.format === 'PDF' ? (
+                                  <FileText className="w-5 h-5 text-red-600" />
+                                ) : (
+                                  <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-gray-900">
+                                  {report.name}
+                                </h4>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 text-sm text-gray-600">
+                            {report.date}
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <Badge 
+                              variant="secondary" 
+                              className={`uppercase font-semibold ${
+                                report.format === 'PDF' ? 'bg-red-100 text-red-700' :
+                                report.format === 'XLSX' ? 'bg-green-100 text-green-700' :
+                                'bg-blue-100 text-blue-700'
+                              }`}
+                            >
+                              {report.format}
+                            </Badge>
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-600">
+                            {report.size}
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <Button
+                              size="sm"
+                              className="bg-[#15592F] hover:bg-[#104624]"
+                              onClick={() => handleDownloadReport(report.download_url)}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Pagination */}
+                {recentReports.length > itemsPerPage && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                    <div className="text-sm text-gray-600">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, recentReports.length)} of {recentReports.length} reports
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+                      <div className="text-sm text-gray-600 px-3">
+                        Page {currentPage} of {Math.ceil(recentReports.length / itemsPerPage)}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(Math.ceil(recentReports.length / itemsPerPage), prev + 1))}
+                        disabled={currentPage >= Math.ceil(recentReports.length / itemsPerPage)}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
 
         {/* Export Report Dialog */}
         <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
                 <FileDown className="w-5 h-5 text-[#15592F]" />
@@ -530,14 +655,14 @@ export default function Reports() {
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
+            <div className="space-y-4 py-2">
               {/* Report Type */}
               <div className="space-y-2">
                 <Label>Select Report Type</Label>
                 <select
                   value={reportType}
                   onChange={(e) => setReportType(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md bg-gray-50"
+                  className="w-full px-3 py-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#15592F]"
                 >
                   <option>Student Affairs Services Summary</option>
                   <option>Monthly Transaction Summary</option>
@@ -552,6 +677,9 @@ export default function Reports() {
                   <option>Detailed Transaction Report</option>
                   <option>Performance Metrics Report</option>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {reportTypeDescriptions[reportType]}
+                </p>
               </div>
 
               {/* Date Range */}
@@ -631,15 +759,15 @@ export default function Reports() {
               </div>
 
               {/* Include in Report */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Label>Include in Report</Label>
-                <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                <div className="space-y-2 bg-gray-50 p-3 rounded-lg">
                   <div className="flex items-start space-x-3">
                     <Checkbox
                       id="summary"
                       checked={includeSummary}
                       onCheckedChange={setIncludeSummary}
-                      className="mt-1"
+                      className="mt-0.5"
                     />
                     <div className="flex-1">
                       <label
@@ -648,7 +776,7 @@ export default function Reports() {
                       >
                         Summary Overview
                       </label>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 mt-0.5">
                         Include status breakdown, total transactions, and top requested purposes
                       </p>
                     </div>
@@ -659,7 +787,7 @@ export default function Reports() {
                       id="details"
                       checked={includeDetails}
                       onCheckedChange={setIncludeDetails}
-                      className="mt-1"
+                      className="mt-0.5"
                     />
                     <div className="flex-1">
                       <label
@@ -668,7 +796,7 @@ export default function Reports() {
                       >
                         Detailed Transactions
                       </label>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 mt-0.5">
                         Include complete list of all transactions with student information
                       </p>
                     </div>
@@ -679,7 +807,7 @@ export default function Reports() {
                       id="feedback"
                       checked={includeFeedback}
                       onCheckedChange={setIncludeFeedback}
-                      className="mt-1"
+                      className="mt-0.5"
                     />
                     <div className="flex-1">
                       <label
@@ -688,7 +816,7 @@ export default function Reports() {
                       >
                         Feedback Summary
                       </label>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 mt-0.5">
                         Include student feedback ratings and distribution
                       </p>
                     </div>
@@ -708,7 +836,7 @@ export default function Reports() {
               <Button
                 className="bg-[#15592F] hover:bg-[#104624]"
                 onClick={handleExportReport}
-                disabled={exporting}
+                disabled={exporting || (!includeSummary && !includeDetails && !includeFeedback)}
               >
                 {exporting ? (
                   <>
