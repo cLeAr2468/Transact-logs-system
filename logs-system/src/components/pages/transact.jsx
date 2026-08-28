@@ -24,10 +24,18 @@ import {
   Check,
   X,
   Loader2,
+  Filter,
 } from "lucide-react";
 
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Transaction = () => {
   const navigate = useNavigate();
@@ -36,13 +44,41 @@ const Transaction = () => {
   const [actionLoading, setActionLoading] = useState(null); // Track which button is loading
 
   // ✅ FILTER & SEARCH STATE
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("Pending");
   const [searchQuery, setSearchQuery] = useState("");
+  const [purposeFilter, setPurposeFilter] = useState("All Purposes");
+  const [purposes, setPurposes] = useState([]);
 
   // Fetch transactions from backend
   useEffect(() => {
     fetchTransactions();
+    fetchPurposes();
   }, []);
+
+  const fetchPurposes = async () => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      
+      if (!token) {
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/purposes`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPurposes(data.purposes || []);
+      }
+    } catch (error) {
+      console.error('Fetch purposes error:', error);
+    }
+  };
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -307,8 +343,16 @@ const Transaction = () => {
                          item.status === 'pending' ? 'Pending' :
                          item.status === 'completed' ? 'Completed' : item.status;
 
-    // Filter by status
-    const statusMatch = filter === "All" || displayStatus === filter;
+    // Only show Pending, Approved, and Completed
+    if (displayStatus !== 'Pending' && displayStatus !== 'Approved' && displayStatus !== 'Completed') {
+      return false;
+    }
+
+    // Filter by status (no "All" option)
+    const statusMatch = displayStatus === filter;
+    
+    // Purpose filter
+    const purposeMatch = purposeFilter === "All Purposes" || item.purpose === purposeFilter;
 
     // Get student name from user object
     const studentName = item.user ? `${item.user.fname} ${item.user.lname}` : '';
@@ -324,7 +368,7 @@ const Transaction = () => {
       item.schedule_date?.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Return true only if all conditions are met
-    return statusMatch && searchMatch;
+    return statusMatch && searchMatch && purposeMatch;
   });
 
   // STATUS COLORS
@@ -452,54 +496,62 @@ const Transaction = () => {
                     Transaction Records
                   </h2>
 
-                  <div className="flex gap-2 flex-wrap">
-                    <Button
-                      variant={filter === "All" ? "default" : "outline"}
-                      onClick={() => setFilter("All")}
-                      className={
-                        filter === "All"
-                          ? "bg-[#15592F] hover:bg-[#124b28] text-white"
-                          : ""
-                      }
-                    >
-                      All
-                    </Button>
+                  <div className="flex gap-3 flex-wrap items-center">
+                    <div className="flex gap-2">
+                      <Button
+                        variant={filter === "Pending" ? "default" : "outline"}
+                        onClick={() => setFilter("Pending")}
+                        className={
+                          filter === "Pending"
+                            ? "bg-red-600 hover:bg-red-700 text-white"
+                            : ""
+                        }
+                      >
+                        Pending
+                      </Button>
 
-                    <Button
-                      variant={filter === "Pending" ? "default" : "outline"}
-                      onClick={() => setFilter("Pending")}
-                      className={
-                        filter === "Pending"
-                          ? "bg-red-600 hover:bg-red-700 text-white"
-                          : ""
-                      }
-                    >
-                      Pending
-                    </Button>
+                      <Button
+                        variant={filter === "Approved" ? "default" : "outline"}
+                        onClick={() => setFilter("Approved")}
+                        className={
+                          filter === "Approved"
+                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            : ""
+                        }
+                      >
+                        Approved
+                      </Button>
 
-                    <Button
-                      variant={filter === "Approved" ? "default" : "outline"}
-                      onClick={() => setFilter("Approved")}
-                      className={
-                        filter === "Approved"
-                          ? "bg-blue-600 hover:bg-blue-700 text-white"
-                          : ""
-                      }
-                    >
-                      Approved
-                    </Button>
-
-                    <Button
-                      variant={filter === "Completed" ? "default" : "outline"}
-                      onClick={() => setFilter("Completed")}
-                      className={
-                        filter === "Completed"
-                          ? "bg-green-600 hover:bg-green-700 text-white"
-                          : ""
-                      }
-                    >
-                      Completed
-                    </Button>
+                      <Button
+                        variant={filter === "Completed" ? "default" : "outline"}
+                        onClick={() => setFilter("Completed")}
+                        className={
+                          filter === "Completed"
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : ""
+                        }
+                      >
+                        Completed
+                      </Button>
+                    </div>
+                    
+                    {/* Purpose Filter Dropdown */}
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-gray-500" />
+                      <Select value={purposeFilter} onValueChange={setPurposeFilter}>
+                        <SelectTrigger className="w-[220px] h-10">
+                          <SelectValue placeholder="Filter by purpose" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="All Purposes">All Purposes</SelectItem>
+                          {purposes.map((purpose) => (
+                            <SelectItem key={purpose.id} value={purpose.name}>
+                              {purpose.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
@@ -514,14 +566,16 @@ const Transaction = () => {
                         <TableHead>Address</TableHead>
                         <TableHead>Course</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
+                        {filter !== "Completed" && (
+                          <TableHead>Actions</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
 
                     <TableBody>
                       {loading ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8">
+                          <TableCell colSpan={filter !== "Completed" ? 7 : 6} className="text-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
                             <p className="text-gray-500 mt-2">Loading transactions...</p>
                           </TableCell>
@@ -547,77 +601,77 @@ const Transaction = () => {
                                   {displayStatus}
                                 </Badge>
                               </TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  {/* Pending status: Show Approve and Reject buttons */}
-                                  {item.status === 'pending' && (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleApprove(item.id)}
-                                        disabled={actionLoading === item.id}
-                                        className="bg-green-600 hover:bg-green-700 text-white h-8"
-                                      >
-                                        {actionLoading === item.id ? (
-                                          <Loader2 className="h-3 w-3 animate-spin" />
-                                        ) : (
-                                          <>
-                                            <Check className="h-3 w-3 mr-1" />
-                                            Approve
-                                          </>
-                                        )}
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={() => handleReject(item.id)}
-                                        disabled={actionLoading === item.id}
-                                        className="h-8"
-                                      >
-                                        {actionLoading === item.id ? (
-                                          <Loader2 className="h-3 w-3 animate-spin" />
-                                        ) : (
-                                          <>
-                                            <X className="h-3 w-3 mr-1" />
-                                            Reject
-                                          </>
-                                        )}
-                                      </Button>
-                                    </>
-                                  )}
-
-                                  {/* Processing (approved) status: Show Complete button */}
-                                  {item.status === 'approved' && (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleComplete(item.id)}
-                                      disabled={actionLoading === item.id}
-                                      className="bg-blue-600 hover:bg-blue-700 text-white h-8"
-                                    >
-                                      {actionLoading === item.id ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
+                              {filter !== "Completed" && (
+                                <TableCell>
+                                  {/* Show actions only for pending and approved status */}
+                                  {(item.status === 'pending' || item.status === 'approved') && (
+                                    <div className="flex gap-2">
+                                      {/* Pending status: Show Approve and Reject buttons */}
+                                      {item.status === 'pending' && (
                                         <>
-                                          <Check className="h-3 w-3 mr-1" />
-                                          Complete
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleApprove(item.id)}
+                                            disabled={actionLoading === item.id}
+                                            className="bg-green-600 hover:bg-green-700 text-white h-8"
+                                          >
+                                            {actionLoading === item.id ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <>
+                                                <Check className="h-3 w-3 mr-1" />
+                                                Approve
+                                              </>
+                                            )}
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={() => handleReject(item.id)}
+                                            disabled={actionLoading === item.id}
+                                            className="h-8"
+                                          >
+                                            {actionLoading === item.id ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <>
+                                                <X className="h-3 w-3 mr-1" />
+                                                Reject
+                                              </>
+                                            )}
+                                          </Button>
                                         </>
                                       )}
-                                    </Button>
-                                  )}
 
-                                  {/* Completed, Rejected, Cancelled: No actions */}
-                                  {(item.status === 'completed' || item.status === 'rejected' || item.status === 'cancelled') && (
-                                    <span className="text-xs text-gray-400">No actions</span>
+                                      {/* Approved status: Show Complete button */}
+                                      {item.status === 'approved' && (
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleComplete(item.id)}
+                                          disabled={actionLoading === item.id}
+                                          className="bg-blue-600 hover:bg-blue-700 text-white h-8"
+                                        >
+                                          {actionLoading === item.id ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <>
+                                              <Check className="h-3 w-3 mr-1" />
+                                              Complete
+                                            </>
+                                          )}
+                                        </Button>
+                                      )}
+                                    </div>
                                   )}
-                                </div>
-                              </TableCell>
+                                </TableCell>
+                              )}
                             </TableRow>
                           );
                         })
                       ) : (
                         <TableRow>
                           <TableCell
-                            colSpan={7}
+                            colSpan={filter !== "Completed" ? 7 : 6}
                             className="text-center py-8 text-gray-500"
                           >
                             {searchQuery
