@@ -597,7 +597,6 @@ export default function Reports() {
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Generated Date</th>
                         <th className="text-center py-3 px-4 font-semibold text-gray-700">Format</th>
                         <th className="text-center py-3 px-4 font-semibold text-gray-700">Size</th>
-                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -645,16 +644,6 @@ export default function Reports() {
                           </td>
                           <td className="py-4 px-4 text-center text-sm text-gray-600">
                             {report.size}
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <Button
-                              size="sm"
-                              className="bg-[#15592F] hover:bg-[#104624]"
-                              onClick={() => handleDownloadReport(report.download_url)}
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              Download
-                            </Button>
                           </td>
                         </tr>
                       ))}
