@@ -29,15 +29,25 @@ export default function TransactionForm() {
   const [isUserValidated, setIsUserValidated] = useState(false);
   const [purposes, setPurposes] = useState([]);
   
-  // ✅ SINGLE STATE FOR BOTH MORNING & AFTERNOON
-  const [selectedTime, setSelectedTime] = useState('09:30 AM');
+  const [selectedTime, setSelectedTime] = useState('');
   const [scheduleDate, setScheduleDate] = useState('');
   const [purpose, setPurpose] = useState('');
+  const [availableSlots, setAvailableSlots] = useState({ morning: [], afternoon: [] });
+  const [fullSlots, setFullSlots] = useState([]);
+  const [slotDetails, setSlotDetails] = useState({});
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Fetch purposes on component mount
   useEffect(() => {
     fetchPurposes();
   }, []);
+
+  // Fetch available slots when date changes
+  useEffect(() => {
+    if (scheduleDate) {
+      fetchAvailableSlots();
+    }
+  }, [scheduleDate]);
 
   const fetchPurposes = async () => {
     try {
@@ -49,29 +59,68 @@ export default function TransactionForm() {
     }
   };
 
-  // Get today's date in YYYY-MM-DD format for min attribute
+  const fetchAvailableSlots = async () => {
+    setLoadingSlots(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      
+      const url = `${import.meta.env.VITE_API_URL}/appointments/available-slots?date=${scheduleDate}`;
+      console.log('🔍 Fetching slots for date:', scheduleDate);
+      console.log('🔍 API URL:', url);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📊 Slot data received:', data);
+        console.log('🔴 Full slots:', data.full_slots);
+        console.log('✅ Available slots:', data.available_slots);
+        console.log('📈 Slot details:', data.slot_details);
+        
+        setAvailableSlots(data.available_slots || { morning: [], afternoon: [] });
+        setFullSlots(data.full_slots || []);
+        setSlotDetails(data.slot_details || {});
+        
+        if (selectedTime && data.full_slots?.includes(selectedTime)) {
+          console.log('⚠️ Selected time is now full, clearing selection');
+          setSelectedTime('');
+        }
+      } else {
+        console.error('❌ Failed to fetch slots:', response.status);
+        toast.error('Failed to fetch available time slots');
+      }
+    } catch (error) {
+      console.error('💥 Error fetching available slots:', error);
+      toast.error('Failed to load available time slots');
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const isSlotAvailable = (timeSlot) => {
+    const available = !fullSlots.includes(timeSlot);
+    // console.log(`Slot ${timeSlot} available:`, available, 'Full slots:', fullSlots);
+    return available;
+  };
+
+  const getSlotInfo = (timeSlot) => {
+    return slotDetails[timeSlot] || { total: 5, booked: 0, available: 5 };
+  };
+
   const today = new Date().toISOString().split('T')[0];
 
   const morningTimes = [
-    "08:00 AM",
-    "08:30 AM",
-    "09:00 AM",
-    "09:30 AM",
-    "10:00 AM",
-    "10:30 AM",
-    "11:00 AM",
-    "11:30 AM",
+    "08:00 AM", "08:30 AM", "09:00 AM", "09:30 AM",
+    "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
   ];
 
   const afternoonTimes = [
-    "01:00 PM",
-    "01:30 PM",
-    "02:00 PM",
-    "02:30 PM",
-    "03:00 PM",
-    "03:30 PM",
-    "04:00 PM",
-    "04:30 PM",
+    "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
+    "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM",
   ];
 
   // Validate student ID
@@ -126,7 +175,6 @@ export default function TransactionForm() {
     }
   };
 
-  // Handle student ID input change
   const handleStudentIdChange = (e) => {
     setStudentId(e.target.value);
     setIsUserValidated(false);
@@ -162,6 +210,7 @@ export default function TransactionForm() {
     }
 
     setIsSubmitting(true);
+    
     try {
       const token = localStorage.getItem('admin_token');
       
@@ -190,14 +239,8 @@ export default function TransactionForm() {
 
       const data = await response.json();
 
-      if (response.status === 401) {
-        toast.error('Session expired. Please login again.');
-        navigate('/login');
-        return;
-      }
-
       if (response.ok) {
-        toast.success('Transaction created successfully!');
+        toast.success(data?.message || 'Transaction created successfully!');
         
         // Reset form
         setStudentId('');
@@ -205,10 +248,31 @@ export default function TransactionForm() {
         setIsUserValidated(false);
         setPurpose('');
         setScheduleDate('');
-        setSelectedTime('09:30 AM');
+        setSelectedTime('');
+        setAvailableSlots({ morning: [], afternoon: [] });
+        setFullSlots([]);
+        setSlotDetails({});
+        
+        // Navigate back
+        setTimeout(() => {
+          navigate('/transact');
+        }, 1500);
+        
       } else {
-        toast.error(data.message || 'Failed to create transaction');
+        if (response.status === 401) {
+          toast.error('Session expired. Please login again.');
+          localStorage.removeItem('admin_token');
+          navigate('/login');
+        } else if (response.status === 409) {
+          toast.error(data?.message || 'Time slot is no longer available. Please choose another slot.');
+          if (scheduleDate) {
+            fetchAvailableSlots();
+          }
+        } else {
+          toast.error(data?.message || 'Failed to create transaction');
+        }
       }
+      
     } catch (error) {
       console.error('Submit error:', error);
       toast.error('Failed to create transaction. Please try again.');
@@ -219,7 +283,7 @@ export default function TransactionForm() {
 
   // Handle cancel
   const handleCancel = () => {
-    if (studentId || purpose || scheduleDate || timeSlot) {
+    if (studentId || purpose || scheduleDate || selectedTime) {
       toast.warning(
         <div>
           <p className="font-semibold">Cancel Transaction?</p>
@@ -339,40 +403,39 @@ export default function TransactionForm() {
                         disabled={!isUserValidated}
                       />
                     </div>
-                   {/* Purpose for Appointment */}
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 lg:text-base">
-                Purpose for Appointment
-              </Label>
-              <Select 
-                value={purpose} 
-                onValueChange={setPurpose}
-                disabled={!isUserValidated}
-              >
-                <SelectTrigger className="h-10 rounded-lg border-2 text-sm sm:h-12 sm:rounded-xl sm:text-base lg:h-14 lg:text-md">
-                  <SelectValue placeholder="Select purpose" />
-                </SelectTrigger>
-                <SelectContent className="w-full">
-                  {purposes.length === 0 ? (
-                    <SelectItem value="" disabled>
-                      No purposes available
-                    </SelectItem>
-                  ) : (
-                    purposes.map((purposeItem) => (
-                      <SelectItem key={purposeItem.id} value={purposeItem.name}>
-                        {purposeItem.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-slate-700 lg:text-base">
+                        Purpose for Appointment
+                      </Label>
+                      <Select 
+                        value={purpose} 
+                        onValueChange={setPurpose}
+                        disabled={!isUserValidated}
+                      >
+                        <SelectTrigger className="h-10 rounded-lg border-2 text-sm sm:h-12 sm:rounded-xl sm:text-base lg:h-14 lg:text-md">
+                          <SelectValue placeholder="Select purpose" />
+                        </SelectTrigger>
+                        <SelectContent className="w-full">
+                          {purposes.length === 0 ? (
+                            <SelectItem value="" disabled>
+                              No purposes available
+                            </SelectItem>
+                          ) : (
+                            purposes.map((purposeItem) => (
+                              <SelectItem key={purposeItem.id} value={purposeItem.name}>
+                                {purposeItem.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
-                  {/* USER INFORMATION - Display Only (similar to new-appointment.jsx) */}
+                  {/* USER INFORMATION */}
                   {isUserValidated && userData && (
                     <div className="space-y-4">
-                      {/* Name Section */}
                       <div className="rounded-lg bg-gray-50 p-4 border-2 border-gray-200">
                         <h3 className="text-base font-semibold text-slate-800 mb-3">
                           Student Information
@@ -391,7 +454,6 @@ export default function TransactionForm() {
                         </div>
                       </div>
 
-                      {/* Address Section */}
                       <div className="rounded-lg bg-gray-50 p-4 border-2 border-gray-200">
                         <div className="flex items-center gap-2 mb-3">
                           <MapPin className="h-5 w-5 text-green-700" />
@@ -424,23 +486,50 @@ export default function TransactionForm() {
 
                   {/* MORNING TIME */}
                   <div>
-                    <h3 className="text-sm font-medium mb-3">Morning</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium">Morning</h3>
+                      {loadingSlots && (
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Loading slots...
+                        </span>
+                      )}
+                    </div>
 
                     <div className="grid grid-cols-4 gap-3">
-                      {morningTimes.map((time) => (
-                        <button
-                          key={time}
-                          onClick={() => setSelectedTime(time)}
-                          disabled={!isUserValidated}
-                          className={`py-2 px-3 rounded-full text-sm transition-all ${
-                            selectedTime === time
-                              ? 'bg-black text-white'
-                              : 'bg-gray-100 hover:bg-gray-200'
-                          } ${!isUserValidated ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {time}
-                        </button>
-                      ))}
+                      {morningTimes.map((time) => {
+                        const slotInfo = getSlotInfo(time);
+                        const isAvailable = isSlotAvailable(time);
+                        const isSelected = selectedTime === time;
+                        
+                        return (
+                          <button
+                            key={time}
+                            onClick={() => isAvailable && setSelectedTime(time)}
+                            disabled={!isUserValidated || !isAvailable || loadingSlots}
+                            className={`py-2 px-3 rounded-lg text-sm transition-all relative ${
+                              isSelected
+                                ? 'bg-black text-white'
+                                : isAvailable
+                                ? 'bg-gray-100 hover:bg-gray-200'
+                                : 'bg-red-100 text-red-400 cursor-not-allowed'
+                            } ${!isUserValidated || loadingSlots ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <div className="font-medium">{time}</div>
+                            {scheduleDate && (
+                              <div className="text-xs mt-1">
+                                {isAvailable ? (
+                                  <span className={slotInfo.available <= 2 ? 'text-orange-500' : ''}>
+                                    {slotInfo.available}/5
+                                  </span>
+                                ) : (
+                                  <span className="text-red-600">Full</span>
+                                )}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -449,26 +538,44 @@ export default function TransactionForm() {
                     <h3 className="text-sm font-medium mb-3">Afternoon</h3>
 
                     <div className="grid grid-cols-4 gap-3">
-                      {afternoonTimes.map((time) => (
-                        <button
-                          key={time}
-                          onClick={() => setSelectedTime(time)}
-                          disabled={!isUserValidated}
-                          className={`py-2 px-3 rounded-full text-sm transition-all ${
-                            selectedTime === time
-                              ? 'bg-black text-white'
-                              : 'bg-gray-100 hover:bg-gray-200'
-                          } ${!isUserValidated ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {time}
-                        </button>
-                      ))}
+                      {afternoonTimes.map((time) => {
+                        const slotInfo = getSlotInfo(time);
+                        const isAvailable = isSlotAvailable(time);
+                        const isSelected = selectedTime === time;
+                        
+                        return (
+                          <button
+                            key={time}
+                            onClick={() => isAvailable && setSelectedTime(time)}
+                            disabled={!isUserValidated || !isAvailable || loadingSlots}
+                            className={`py-2 px-3 rounded-lg text-sm transition-all relative ${
+                              isSelected
+                                ? 'bg-black text-white'
+                                : isAvailable
+                                ? 'bg-gray-100 hover:bg-gray-200'
+                                : 'bg-red-100 text-red-400 cursor-not-allowed'
+                            } ${!isUserValidated || loadingSlots ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <div className="font-medium">{time}</div>
+                            {scheduleDate && (
+                              <div className="text-xs mt-1">
+                                {isAvailable ? (
+                                  <span className={slotInfo.available <= 2 ? 'text-orange-500' : ''}>
+                                    {slotInfo.available}/5
+                                  </span>
+                                ) : (
+                                  <span className="text-red-600">Full</span>
+                                )}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* ACTIONS */}
                   <div className="flex justify-end gap-4 pt-6 border-t">
-
                     <Button variant="outline" onClick={handleCancel}>
                       Cancel
                     </Button>
@@ -490,7 +597,6 @@ export default function TransactionForm() {
                         </>
                       )}
                     </Button>
-
                   </div>
 
                 </div>

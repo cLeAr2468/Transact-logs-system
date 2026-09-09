@@ -13,6 +13,7 @@ import CreateNewPasswordDialog from "@/components/modals/new-password";
 import { adminLogin, forgotPassword, verifyOtp, resendOtp, resetPassword } from "@/api/adminApi";
 import { toast } from "sonner";
 import { setSession, isSessionActive } from "@/utils/session";
+import { showErrorToast, getErrorMessage, isRateLimitError } from "@/utils/errorHandler";
 
 function Login() {
   const navigate = useNavigate();
@@ -129,14 +130,11 @@ function Login() {
     } catch (err) {
       console.error("❌ Login failed:", err);
       
-      // Extract error message
-      const errorMessage = 
-        err?.message || 
-        err?.error?.message || 
-        err?.data?.message || 
-        "Invalid email or password";
-      
+      // Extract error message (err is now an Error object)
+      const errorMessage = err.message || "Login failed. Please try again.";
       setError(errorMessage);
+      
+      // Show error toast
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -167,19 +165,7 @@ function Login() {
       setShowOtpDialog(true);
     } catch (err) {
       console.error("❌ Failed to send OTP:", err);
-      
-      // Handle email not found error
-      if (err.error === 'email_not_found' || err.message?.includes('not found') || err.message?.includes('register')) {
-        toast.error(
-          <div>
-            <p className="font-semibold">📧 Email Not Found</p>
-            <p className="text-sm mt-1">{err.message || 'This email is not registered. Please register first.'}</p>
-          </div>,
-          { duration: 5000 }
-        );
-      } else {
-        toast.error(err.message || "Failed to send OTP");
-      }
+      showErrorToast(err, "Failed to send OTP");
     } finally {
       setForgotLoading(false);
     }
@@ -202,7 +188,7 @@ function Login() {
       setShowNewPasswordDialog(true);
     } catch (err) {
       console.error("❌ OTP verification failed:", err);
-      toast.error(err.message || "Invalid OTP");
+      showErrorToast(err, "Invalid OTP");
     } finally {
       setOtpLoading(false);
     }
@@ -216,7 +202,7 @@ function Login() {
       setOtp("");
     } catch (err) {
       console.error("❌ Failed to resend OTP:", err);
-      toast.error(err.message || "Failed to resend OTP");
+      showErrorToast(err, "Failed to resend OTP");
     }
   };
 

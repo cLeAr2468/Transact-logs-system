@@ -32,7 +32,7 @@ const Dashboard = () => {
   
   const [loading, setLoading] = useState(true);
   const [statistics, setStatistics] = useState(null);
-  const [transactions, setTransactions] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
   const [performanceData, setPerformanceData] = useState([]);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://logs-server-system-production.up.railway.app/api';
@@ -70,37 +70,52 @@ const Dashboard = () => {
       }
 
       // Fetch all dashboard data in parallel with date range filters
-      const [statsRes, transactionsRes, performanceRes] = await Promise.all([
+      const [statsRes, activityLogsRes, performanceRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/dashboard/statistics?${params}`, { headers }),
-        fetch(`${API_BASE_URL}/admin/dashboard/recent-transactions?limit=10&${params}`, { headers }),
+        fetch(`${API_BASE_URL}/activity-logs/recent?limit=10`, { headers }),
         fetch(`${API_BASE_URL}/admin/dashboard/performance?${params}`, { headers })
       ]);
 
       console.log('📊 API Responses:', {
         statistics: statsRes.status,
-        transactions: transactionsRes.status,
+        activityLogs: activityLogsRes.status,
         performance: performanceRes.status
       });
 
       // Handle statistics response
       if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        console.log('✅ Statistics data:', statsData);
-        setStatistics(statsData.statistics);
+        const statsText = await statsRes.text();
+        console.log('📄 Raw statistics response:', statsText);
+        
+        try {
+          const statsData = JSON.parse(statsText);
+          console.log('✅ Parsed statistics data:', statsData);
+          
+          if (statsData && statsData.statistics) {
+            setStatistics(statsData.statistics);
+            console.log('📊 Statistics set successfully:', statsData.statistics);
+          } else {
+            console.error('❌ No statistics in response:', statsData);
+            toast.error('Invalid statistics data received');
+          }
+        } catch (parseError) {
+          console.error('❌ Failed to parse statistics JSON:', parseError);
+          toast.error('Invalid statistics response format');
+        }
       } else {
         const errorData = await statsRes.json().catch(() => ({}));
         console.error('❌ Statistics failed:', statsRes.status, errorData);
         toast.error(`Failed to load statistics: ${errorData.message || statsRes.statusText}`);
       }
 
-      // Handle transactions response
-      if (transactionsRes.ok) {
-        const transactionsData = await transactionsRes.json();
-        console.log('✅ Transactions data:', transactionsData);
-        setTransactions(transactionsData.transactions);
+      // Handle activity logs response
+      if (activityLogsRes.ok) {
+        const activityData = await activityLogsRes.json();
+        console.log('✅ Activity logs data:', activityData);
+        setActivityLogs(activityData.logs || []);
       } else {
-        const errorData = await transactionsRes.json().catch(() => ({}));
-        console.error('❌ Transactions failed:', transactionsRes.status, errorData);
+        const errorData = await activityLogsRes.json().catch(() => ({}));
+        console.error('❌ Activity logs failed:', activityLogsRes.status, errorData);
       }
 
       // Handle performance response
@@ -114,7 +129,7 @@ const Dashboard = () => {
       }
 
       // Check for 401 Unauthorized
-      if (statsRes.status === 401 || transactionsRes.status === 401 || performanceRes.status === 401) {
+      if (statsRes.status === 401 || activityLogsRes.status === 401 || performanceRes.status === 401) {
         toast.error('Session expired. Please log in again.');
         localStorage.removeItem('admin_token');
         localStorage.removeItem('token');
@@ -137,53 +152,80 @@ const Dashboard = () => {
     return `${startStr} - ${endStr}`;
   };
 
-  // Build stats array from backend data
-  const stats = statistics ? [
-    {
-      title: 'Total Transactions',
-      value: statistics.total_transactions.toLocaleString(),
-      description: `${Math.round(statistics.target_percentage)}% of target (${statistics.monthly_target?.toLocaleString() || '6,500'})`,
-      icon: RefreshCw,
-      trend: statistics.target_percentage > 100 ? 'Target exceeded' : `${Math.round(100 - statistics.target_percentage)}% to goal`,
-      trendUp: statistics.target_percentage >= 50,
-      progress: Math.min(statistics.target_percentage, 100),
-      progressColor: 'from-[#15592F] to-[#0d3d20]'
-    },
-    {
-      title: 'Pending Requests',
-      value: statistics.pending_requests.toLocaleString(),
-      description: statistics.pending_requests > 0 ? 'Needs attention soon' : 'All caught up!',
-      icon: Calendar,
-      trend: statistics.pending_trend || 'N/A',
-      trendUp: false,
-      progress: statistics.total_transactions > 0 
-        ? Math.round((statistics.pending_requests / statistics.total_transactions) * 100) 
-        : 0,
-      progressColor: 'from-orange-500 to-orange-600'
-    },
-    {
-      title: 'Completed Services',
-      value: statistics.completed_services.toLocaleString(),
-      description: `${statistics.completion_rate}% completion rate`,
-      icon: CheckCircle,
-      trend: statistics.completion_rate >= 80 ? 'Excellent' : statistics.completion_rate >= 60 ? 'Good' : 'Needs improvement',
-      trendUp: statistics.completion_rate >= 70,
-      progress: statistics.completion_rate,
-      progressColor: 'from-blue-500 to-blue-600'
-    },
-    {
-      title: 'Feedback Score',
-      value: statistics.feedback_score > 0 ? statistics.feedback_score.toFixed(1) : '0.0',
-      suffix: '/5',
-      description: statistics.feedback_count > 0 
-        ? `Based on ${statistics.feedback_count} ${statistics.feedback_count === 1 ? 'review' : 'reviews'}` 
-        : 'No feedback yet',
-      icon: Star,
-      trend: statistics.feedback_score >= 4.5 ? 'Outstanding' : statistics.feedback_score >= 4.0 ? 'Great' : statistics.feedback_score >= 3.0 ? 'Good' : 'Needs attention',
-      trendUp: statistics.feedback_score >= 4.0,
-      rating: statistics.feedback_score
+ // ...existing code...
+
+const getTrendLabel = (value, fallback = 'On track') => {
+  if (!value || typeof value !== 'string') return fallback;
+  const cleaned = value.replace(/[+-]?\d+(\.\d+)?%/g, '').trim();
+  return cleaned || fallback;
+};
+
+// Build stats array from backend data
+const stats = statistics ? [
+  {
+    title: 'Total Transactions',
+    value: statistics.total_transactions?.toLocaleString() || '0',
+    description: `${Math.round(statistics.target_percentage || 0)}% of target`,
+    icon: RefreshCw,
+    trend: (statistics.target_percentage || 0) > 100 ? '' : '',
+    trendUp: (statistics.target_percentage || 0) >= 50,
+    progress: Math.max(0, statistics.target_percentage || 0),
+    progressColor: 'from-green-700 to-green-900'
+  },
+  {
+    title: 'Pending Requests',
+    value: statistics.pending_requests?.toLocaleString() || '0',
+    description: '',
+    icon: Calendar,
+    trend: getTrendLabel(statistics.pending_trend, 'Monitor'),
+    trendUp: false,
+    progress: (statistics.total_transactions || 0) > 0
+      ? Math.round(((statistics.pending_requests || 0) / (statistics.total_transactions || 1)) * 100)
+      : 0,
+    progressColor: 'from-orange-500 to-orange-600'
+  },
+  {
+    title: 'Completed Services',
+    value: statistics.completed_services?.toLocaleString() || '0',
+    description: `${statistics.completion_rate || 0}% completion rate`,
+    icon: CheckCircle,
+    trend: (statistics.completion_rate || 0) >= 80 ? 'Strong' : (statistics.completion_rate || 0) >= 60 ? 'Good' : 'Monitor',
+    trendUp: (statistics.completion_rate || 0) >= 70,
+    progress: statistics.completion_rate || 0,
+    progressColor: 'from-blue-500 to-blue-600'
+  },
+  {
+    title: 'Feedback Score',
+    value: (statistics.feedback_score || 0) > 0 ? (statistics.feedback_score || 0).toFixed(1) : '0.0',
+    suffix: '/5',
+    description: (statistics.feedback_count || 0) > 0
+      ? `Based on ${statistics.feedback_count || 0} ${(statistics.feedback_count || 0) === 1 ? 'review' : 'reviews'}`
+      : 'No feedback yet',
+    icon: Star,
+    trend: (statistics.feedback_score || 0) >= 4.5 ? 'Excellent' : (statistics.feedback_score || 0) >= 4.0 ? 'Great' : (statistics.feedback_score || 0) >= 3.0 ? 'Fair' : 'Review',
+    trendUp: (statistics.feedback_score || 0) >= 4.0,
+    rating: statistics.feedback_score || 0
+  }
+] : [];
+
+// ...existing code...
+
+  const getActionColor = (action) => {
+    switch (action.toLowerCase()) {
+      case 'logged_in':
+        return 'bg-green-100 text-green-800';
+      case 'logged_out':
+        return 'bg-gray-100 text-gray-800';
+      case 'created':
+        return 'bg-blue-100 text-blue-800';
+      case 'updated':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'deleted':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-  ] : [];
+  };
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
@@ -248,21 +290,36 @@ const Dashboard = () => {
                   <Loader2 className="w-8 h-8 animate-spin text-[#15592F]" />
                   <span className="ml-3 text-gray-500">Loading dashboard...</span>
                 </div>
+              ) : !statistics ? (
+                <div className="col-span-full flex flex-col items-center justify-center py-12">
+                  <p className="text-red-500 font-semibold">⚠️ No statistics data available</p>
+                  <p className="text-gray-500 text-sm mt-2">Please check console for errors</p>
+                  <Button 
+                    onClick={fetchDashboardData} 
+                    className="mt-4 bg-[#15592F] hover:bg-[#0d3d20]"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : stats.length === 0 ? (
+                <div className="col-span-full flex items-center justify-center py-12">
+                  <p className="text-gray-500">No statistics available</p>
+                </div>
               ) : (
                 stats.map((stat, index) => (
                   <Card key={index} className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-2">
                         <stat.icon className="w-5 h-5 text-gray-500" />
-                        <span className={`text-sm font-medium ${stat.trendUp ? 'text-green-600' : 'text-red-600'}`}>
-                          {stat.trend}
-                        </span>
                       </div>
                       <div className="flex items-baseline gap-1 mb-1">
                         <span className="text-3xl font-bold text-gray-900">{stat.value}</span>
                         {stat.suffix && <span className="text-lg text-gray-500">{stat.suffix}</span>}
                       </div>
                       <p className="text-sm text-gray-600 mb-3">{stat.title}</p>
+                      {stat.title === 'Pending Requests' && stat.progress !== undefined && (
+                        <p className="text-xs text-gray-500 mb-1">{stat.progress}%</p>
+                      )}
                       <p className="text-xs text-gray-500">{stat.description}</p>
                       
                       {stat.progress !== undefined && (
@@ -295,15 +352,15 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="text-lg font-semibold">
-                          Recent Transactions
+                          Activity Logs
                         </CardTitle>
-                        <CardDescription>Latest service requests for the selected period</CardDescription>
+                        <CardDescription>Recent Activity</CardDescription>
                       </div>
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         className="text-green-600 hover:text-green-700"
-                        onClick={() => navigate('/recent-transact')}
+                        onClick={() => navigate('/Activity')}
                       >
                         View All
                       </Button>
@@ -313,40 +370,46 @@ const Dashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Student</TableHead>
-                          <TableHead>Purpose</TableHead>
-                          <TableHead>Address</TableHead>
-                          <TableHead>Course</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead>Date & Time</TableHead>
+                          <TableHead>Action</TableHead>
+                          <TableHead>Module</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>IP Address</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {loading ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8">
+                            <TableCell colSpan={5} className="text-center py-8">
                               <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
                             </TableCell>
                           </TableRow>
-                        ) : transactions.length === 0 ? (
+                        ) : activityLogs.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                              No recent transactions
+                            <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                              No recent activity logs
                             </TableCell>
                           </TableRow>
                         ) : (
-                          transactions.map((transaction, index) => (
-                            <TableRow key={transaction.id || index}>
-                              <TableCell>{transaction.date}</TableCell>
-                              <TableCell className="font-medium">{transaction.student}</TableCell>
-                              <TableCell>{transaction.purpose}</TableCell>
-                              <TableCell>{transaction.address}</TableCell>
-                              <TableCell>{transaction.course}</TableCell>
+                          activityLogs.map((log, index) => (
+                            <TableRow key={log.id || index}>
+                              <TableCell className="text-sm">
+                                {new Date(log.created_at).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </TableCell>
                               <TableCell>
-                                <Badge className={`${getStatusColor(transaction.status)}`}>
-                                  {transaction.status}
+                                <Badge className={`${getActionColor(log.action)}`}>
+                                  {log.action.replace('_', ' ').toUpperCase()}
                                 </Badge>
                               </TableCell>
+                              <TableCell className="font-medium">{log.module || 'System'}</TableCell>
+                              <TableCell className="text-sm text-gray-600">{log.description || '-'}</TableCell>
+                              <TableCell className="text-sm text-gray-500">{log.ip_address || '-'}</TableCell>
                             </TableRow>
                           ))
                         )}

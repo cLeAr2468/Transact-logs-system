@@ -13,6 +13,12 @@ export const setSession = (token, userData) => {
   localStorage.setItem('user', JSON.stringify(userData));
   localStorage.setItem('token', token);
   localStorage.setItem('authToken', token);
+  
+  // Store user_type from role
+  if (userData && userData.role) {
+    localStorage.setItem('user_type', userData.role);
+    sessionStorage.setItem('user_type', userData.role);
+  }
 };
 
 /**

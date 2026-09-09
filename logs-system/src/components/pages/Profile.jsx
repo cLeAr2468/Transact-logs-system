@@ -55,7 +55,13 @@ export default function ProfileDisplay() {
             setLoading(true);
             setError(null);
             const response = await getProfile();
-            setUser(response.user || response.staff);
+            console.log('📋 Profile response:', response);
+            
+            // Extract user data - handle different response structures
+            const userData = response.user || response.staff || response.data?.user || response.data?.staff || response;
+            console.log('👤 User data extracted:', userData);
+            
+            setUser(userData);
         } catch (error) {
             console.error("Failed to load profile:", error);
             setError(error.message || "Failed to load profile");
@@ -168,6 +174,20 @@ export default function ProfileDisplay() {
     const initials = `${user.firstname?.charAt(0) ?? ""}${user.lastname?.charAt(0) ?? ""
         }`.toUpperCase();
 
+    // Determine display ID based on account type
+    let displayId = 'N/A';
+    if (user.admin_id) {
+        // Admin account with admin_id
+        displayId = user.admin_id;
+    } else if (user.staff_id) {
+        // Staff account has staff_id
+        displayId = user.staff_id;
+    }
+    
+    const displayRole = user.role === 'admin' ? 'Administrator' : 'Staff';
+    
+    console.log('🔍 Display values:', { displayId, displayRole, user });
+
     return (
         <SidebarProvider>
             <div className="flex h-screen w-full">
@@ -228,13 +248,21 @@ export default function ProfileDisplay() {
                                                     <div className="grid grid-cols-2 gap-6">
                                                         <Info
                                                             icon={<IdCard size={18} />}
-                                                            label="Staff ID"
-                                                            value={user.staff_id || 'N/A'}
+                                                            label="USER ID"
+                                                            value={displayId}
                                                         />
                                                         <Info
                                                             icon={<Mail size={18} />}
                                                             label="Email"
                                                             value={user.email}
+                                                        />
+                                                    </div>
+
+                                                    <div className="mt-4">
+                                                        <Info
+                                                            icon={<Key size={18} />}
+                                                            label="Role"
+                                                            value={displayRole}
                                                         />
                                                     </div>
 
@@ -355,8 +383,8 @@ export default function ProfileDisplay() {
                                         <div className="space-y-5 w-full">
                                             <Info
                                                 icon={<IdCard size={18} />}
-                                                label="Staff ID"
-                                                value={user.staff_id || 'N/A'}
+                                                label="USER ID"
+                                                value={displayId}
                                             />
 
                                             <Info
@@ -364,6 +392,98 @@ export default function ProfileDisplay() {
                                                 label="Email"
                                                 value={user.email}
                                             />
+
+                                            <Info
+                                                icon={<Key size={18} />}
+                                                label="Role"
+                                                value={displayRole}
+                                            />
+
+                                            <Separator className="my-4" />
+
+                                            <Button
+                                                onClick={() => setShowPasswordForm(!showPasswordForm)}
+                                                variant={showPasswordForm ? "destructive" : "default"}
+                                                className="w-full"
+                                            >
+                                                <Key className="mr-2 h-4 w-4" />
+                                                {showPasswordForm ? "Cancel" : "Change Password"}
+                                            </Button>
+
+                                            {/* Password Change Form - Mobile */}
+                                            {showPasswordForm && (
+                                                <div className="mt-4">
+                                                    <h3 className="text-lg font-semibold mb-4">Change Password</h3>
+                                                    
+                                                    {passwordError && (
+                                                        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3">
+                                                            <p className="text-sm text-red-600 font-medium">{passwordError}</p>
+                                                        </div>
+                                                    )}
+
+                                                    <form onSubmit={handleChangePassword} className="space-y-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium mb-2">
+                                                                Current Password
+                                                            </label>
+                                                            <Input
+                                                                type="password"
+                                                                name="currentPassword"
+                                                                value={passwordForm.currentPassword}
+                                                                onChange={handlePasswordChange}
+                                                                placeholder="Enter current password"
+                                                                disabled={passwordLoading}
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium mb-2">
+                                                                New Password
+                                                            </label>
+                                                            <Input
+                                                                type="password"
+                                                                name="newPassword"
+                                                                value={passwordForm.newPassword}
+                                                                onChange={handlePasswordChange}
+                                                                placeholder="Enter new password"
+                                                                disabled={passwordLoading}
+                                                            />
+                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                Must be at least 6 characters
+                                                            </p>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium mb-2">
+                                                                Confirm New Password
+                                                            </label>
+                                                            <Input
+                                                                type="password"
+                                                                name="confirmPassword"
+                                                                value={passwordForm.confirmPassword}
+                                                                onChange={handlePasswordChange}
+                                                                placeholder="Confirm new password"
+                                                                disabled={passwordLoading}
+                                                            />
+                                                        </div>
+
+                                                        <Button
+                                                            type="submit"
+                                                            className="w-full"
+                                                            disabled={passwordLoading}
+                                                        >
+                                                            {passwordLoading ? (
+                                                                <>
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    Changing...
+                                                                </>
+                                                            ) : (
+                                                                "Change Password"
+                                                            )}
+                                                        </Button>
+                                                    </form>
+                                                </div>
+                                            )}
 
                                         </div>
                                     </div>

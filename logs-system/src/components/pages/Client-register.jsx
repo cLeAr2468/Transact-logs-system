@@ -49,6 +49,49 @@ function Register() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [fetchingStudent, setFetchingStudent] = useState(false);
+
+  // Fetch student data from masterlist when student ID is entered
+  const handleStudentIdBlur = async () => {
+    if (!form.student_id || form.student_id.trim() === "") return;
+
+    setFetchingStudent(true);
+    try {
+      const response = await api.get(`/masterlist/student/${form.student_id}`);
+      const student = response.data.student;
+
+      // Auto-fill form with masterlist data
+      setForm({
+        ...form,
+        fname: student.fname || "",
+        mname: student.mname || "",
+        lname: student.lname || "",
+        email: student.email || "",
+        course: student.course || "",
+        year_level: student.year_level || "",
+      });
+
+      toast.success("Student information loaded from masterlist!");
+    } catch (error) {
+      if (error.response?.status === 404) {
+        toast.error("Student ID not found in masterlist. Please contact the administrator.");
+      } else {
+        toast.error("Failed to fetch student information");
+      }
+      // Don't clear the student_id, but clear other fields if student not found
+      setForm({
+        ...form,
+        fname: "",
+        mname: "",
+        lname: "",
+        email: "",
+        course: "",
+        year_level: "",
+      });
+    } finally {
+      setFetchingStudent(false);
+    }
+  };
 
   const handleChange = (e) => {
     setForm({
@@ -150,10 +193,17 @@ function Register() {
                           placeholder="2024-00001"
                           value={form.student_id}
                           onChange={handleChange}
+                          onBlur={handleStudentIdBlur}
+                          disabled={fetchingStudent}
                           className="pl-10"
                           required
                         />
                       </div>
+                      {fetchingStudent && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Loading student information from masterlist...
+                        </p>
+                      )}
                     </div>
                   <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                     

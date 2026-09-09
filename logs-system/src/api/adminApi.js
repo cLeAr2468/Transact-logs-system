@@ -11,27 +11,81 @@ import api from '../api';
  * @param {Object} credentials - Email and password
  * @returns {Promise} API response with token
  */
+/**
+ * Admin/Staff login
+ * Supports:
+ * 1. Default admin: admin@nwssu.edu.ph / admin
+ * 2. Staff credentials from staff table
+ * 
+ * @param {Object} credentials - Email and password
+ * @returns {Promise} API response with token
+ */
 export const adminLogin = async (credentials) => {
   try {
-    const response = await api.post('/admin/login', {
+    console.log('🔐 Admin login attempt:', { 
       email: credentials.email,
+      timestamp: new Date().toISOString()
+    });
+    
+    const response = await api.post('/admin/login', {
+      email: credentials.email.trim(),
       password: credentials.password,
     });
     
-    console.log("🔑 AdminLogin API response:", response.data);
+    console.log("✅ AdminLogin successful:", {
+      hasToken: !!response.data.token,
+      hasUser: !!response.data.user || !!response.data.admin,
+      role: response.data.role || response.data.user?.role
+    });
     
     return response.data;
   } catch (error) {
-    console.error("❌ AdminLogin API error:", error.response?.data || error);
+    console.error("❌ AdminLogin error:", {
+      name: error.name,
+      message: error.message,
+      hasResponse: !!error.response,
+      status: error.response?.status,
+      data: error.response?.data
+    });
     
-    // Extract error message from various possible locations
-    const errorMessage = 
-      error.response?.data?.message || 
-      error.response?.data?.error ||
-      error.message || 
-      'Login failed';
+    // Extract meaningful error message
+    let errorMessage = 'Login failed. Please try again.';
     
-    throw { message: errorMessage, ...error.response?.data };
+    if (error.response) {
+      const { status, data } = error.response;
+      
+      console.log('📥 Server response:', { status, data });
+      
+      if (status === 401) {
+        errorMessage = data?.message || 'Invalid email or password';
+      } else if (status === 403) {
+        errorMessage = 'Access denied. This account does not have admin/staff privileges.';
+      } else if (status === 422) {
+        // Validation error
+        if (data?.errors) {
+          const firstError = Object.values(data.errors)[0];
+          errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+        } else {
+          errorMessage = data?.message || 'Validation failed';
+        }
+      } else if (status === 429) {
+        errorMessage = data?.message || 'Too many login attempts. Please try again later.';
+      } else if (status >= 500) {
+        // Show actual server error in development
+        errorMessage = data?.message || data?.error || 'Server error. Please contact support.';
+        console.error('🚨 Server Error Details:', data);
+      } else {
+        errorMessage = data?.message || data?.error || errorMessage;
+      }
+      
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      console.error('❌ No response from server');
+      throw new Error('Cannot connect to server. Please check your internet connection.');
+    } else {
+      console.error('❌ Request setup error:', error.message);
+      throw new Error(error.message || errorMessage);
+    }
   }
 };
 

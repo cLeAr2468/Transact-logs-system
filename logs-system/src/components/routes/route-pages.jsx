@@ -37,7 +37,7 @@ function Reroutes() {
       <Route path="/master-list" element={<ProtectedRoute><Masteerlist /></ProtectedRoute>} />
       <Route path="/add-manual" element={<ProtectedRoute><AddManual /></ProtectedRoute>} />
       <Route path="/add-staff" element={<ProtectedRoute><AddStaff /></ProtectedRoute>} />
-      <Route path="/recent-transact" element={<ProtectedRoute><RecentTransact /></ProtectedRoute>} />
+      <Route path="/Activity" element={<ProtectedRoute><RecentTransact /></ProtectedRoute>} />
       <Route path="/manage-purpose" element={<ProtectedRoute><ManagePurpose /></ProtectedRoute>} />
     </Routes>
   );

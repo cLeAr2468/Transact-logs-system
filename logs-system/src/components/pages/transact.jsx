@@ -123,6 +123,10 @@ const Transaction = () => {
   // Handle status update
   const handleStatusUpdate = async (transactionId, newStatus) => {
     setActionLoading(transactionId);
+    
+    const transaction = transactions.find(t => t.id === transactionId);
+    const userEmail = transaction?.user?.email || 'student';
+    
     try {
       const token = localStorage.getItem('admin_token');
       
@@ -144,64 +148,34 @@ const Transaction = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Find the transaction to get user email for display
-        const transaction = transactions.find(t => t.id === transactionId);
-        const userEmail = transaction?.user?.email || 'student';
-        
-        // Show success message with email notification info
-        if (newStatus === 'approved') {
-          toast.success(
-            <div>
-              <p className="font-semibold">✅ Appointment Approved!</p>
-              <p className="text-sm">Email notification sent to {userEmail}</p>
-            </div>,
-            { duration: 5000 }
-          );
-        } else if (newStatus === 'rejected') {
-          toast.success(
-            <div>
-              <p className="font-semibold">❌ Appointment Rejected</p>
-              <p className="text-sm">Email notification sent to {userEmail}</p>
-            </div>,
-            { duration: 5000 }
-          );
-        } else if (newStatus === 'completed') {
-          toast.success(
-            <div>
-              <p className="font-semibold">✅ Appointment Completed!</p>
-              <p className="text-sm">Email notification sent to {userEmail}</p>
-            </div>,
-            { duration: 5000 }
-          );
-        } else {
-          toast.success(data.message || `Transaction ${newStatus} successfully!`);
+        switch (newStatus) {
+          case 'approved':
+            toast.success(`✅ Appointment Approved! Email sent to ${userEmail}`);
+            break;
+          case 'rejected':
+            toast.success(`❌ Appointment Rejected. Email sent to ${userEmail}`);
+            break;
+          case 'completed':
+            toast.success(`🎉 Appointment Completed! Email sent to ${userEmail}`);
+            break;
+          default:
+            toast.success(data?.message || 'Status updated successfully!');
         }
         
-        // Refresh transactions list
-        fetchTransactions();
+        await fetchTransactions();
+        
       } else {
-        // Check if error is due to email sending failure
-        if (data.error === 'email_send_failed') {
-          const transaction = transactions.find(t => t.id === transactionId);
-          const userEmail = transaction?.user?.email || 'student';
-          
-          toast.error(
-            <div>
-              <p className="font-semibold">📧 Failed to Send Email Notification</p>
-              <p className="text-sm mt-1">{data.message || 'Could not send email notification to student.'}</p>
-              <p className="text-sm text-gray-500 mt-1">Status was NOT changed to {newStatus}.</p>
-              {data.details && (
-                <p className="text-xs text-gray-400 mt-1">{data.details}</p>
-              )}
-            </div>,
-            { duration: 7000 }
-          );
+        if (response.status === 401) {
+          toast.error('Session expired. Please log in again.');
+          localStorage.removeItem('admin_token');
+          navigate('/login');
         } else {
-          toast.error(data.message || 'Failed to update transaction status');
+          toast.error(data?.message || 'Failed to update transaction status');
         }
       }
+      
     } catch (error) {
-      console.error('Update error:', error);
+      console.error('Status update error:', error);
       toast.error('Failed to update transaction. Please try again.');
     } finally {
       setActionLoading(null);

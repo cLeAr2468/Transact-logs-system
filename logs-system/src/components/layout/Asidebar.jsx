@@ -25,6 +25,7 @@ import {
   LogOut,
   UserCircle,
   Target,
+  Activity,
 } from "lucide-react";
 
 const items = [
@@ -39,7 +40,6 @@ const items = [
     url: "/profile",
     icon: UserCircle,
     relatedRoutes: [],
-    staffOnly: true,
   },
   {
     title: "Staff",
@@ -83,6 +83,12 @@ const items = [
     icon: Megaphone,
     relatedRoutes: ["/add-announcement"],
   },
+    {
+    title: "Activity Logs",
+    url: "/Activity",
+    icon: Activity,
+    relatedRoutes: ["/add-announcement"],
+  },
 ];
 
 export function AppSidebar() {
@@ -123,10 +129,7 @@ export function AppSidebar() {
     if (item.title === "Staff" && ["staff", "employee", "user"].includes(role)) {
       return false;
     }
-    // Show Profile only for staff users, hide for admin
-    if (item.staffOnly) {
-      return ["staff", "employee", "user"].includes(role);
-    }
+    // Show all other items (including Profile for both admin and staff)
     return true;
   });
 

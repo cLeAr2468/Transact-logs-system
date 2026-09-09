@@ -35,6 +35,10 @@ export default function EditProfileDialog({
   const [form, setForm] = useState(user);
   const [loading, setLoading] = useState(false);
 
+  // Determine display ID
+  const displayId = user?.admin_id || user?.staff_id || 'N/A';
+  const isAdmin = user?.role === 'admin' || user?.admin_id;
+
   useEffect(() => {
     setForm(user);
   }, [user]);
@@ -88,12 +92,14 @@ export default function EditProfileDialog({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
-            <Label>Staff ID</Label>
+            <Label>ID</Label>
 
             <Input
-              name="staff_id"
-              value={form.staff_id || ''}
-              onChange={handleChange}
+              name="user_id"
+              value={displayId}
+              readOnly
+              disabled
+              className="bg-gray-100 cursor-not-allowed"
             />
           </div>
 

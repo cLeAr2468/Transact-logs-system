@@ -43,6 +43,20 @@ export const getUser = async (userId) => {
 };
 
 /**
+ * Create a new user (client account) - Admin/Staff only
+ * @param {Object} userData - User details
+ * @returns {Promise} API response
+ */
+export const createUser = async (userData) => {
+  try {
+    const response = await api.post('/users', userData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to create user' };
+  }
+};
+
+/**
  * Update a user
  * @param {number} userId - User ID
  * @param {Object} userData - Updated user details
@@ -75,6 +89,7 @@ export default {
   getAllUsers,
   getUserStatistics,
   getUser,
+  createUser,
   updateUser,
   deleteUser,
 };

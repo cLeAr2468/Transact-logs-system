@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { X, Upload, FileSpreadsheet, AlertCircle, CheckCircle, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { importMasterlistCSV } from '../../api/masterlistApi';
+import { toast } from 'sonner';
 
 const ImportMasterlistDialog = ({ isOpen, onClose, onImportSuccess }) => {
   const [step, setStep] = useState(1); // 1: Upload, 2: Preview, 3: Success
@@ -118,6 +119,14 @@ const ImportMasterlistDialog = ({ isOpen, onClose, onImportSuccess }) => {
       // Check if it was successful or all duplicates
       if (result.success) {
         setStep(3); // Go to success page
+        
+        // Show success toast
+        if (result.skipped > 0) {
+          toast.success(`${result.imported} record(s) imported successfully. ${result.skipped} duplicate(s) skipped.`);
+        } else {
+          toast.success(`All ${result.imported} record(s) imported successfully!`);
+        }
+        
         // Notify parent to refresh data
         if (onImportSuccess) {
           onImportSuccess();
@@ -125,12 +134,15 @@ const ImportMasterlistDialog = ({ isOpen, onClose, onImportSuccess }) => {
       } else {
         // All records are duplicates or failed
         setError(result.message);
+        toast.error(result.message);
         setStep(2); // Stay on preview step
       }
       
     } catch (err) {
       console.error("❌ Import error:", err);
-      setError(err.message || "Failed to import CSV file");
+      const errorMessage = err.message || "Failed to import CSV file";
+      setError(errorMessage);
+      toast.error(errorMessage);
       setStep(2); // Stay on preview step to show error
     } finally {
       setLoading(false);

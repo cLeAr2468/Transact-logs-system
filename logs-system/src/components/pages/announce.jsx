@@ -349,20 +349,6 @@ export default function AnnouncementPage() {
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
-                                
-                                <Button
-                                  size="icon"
-                                  variant="destructive"
-                                  className="h-8 w-8 flex-shrink-0"
-                                  onClick={() => handleDelete(item.id)}
-                                  disabled={deleting === item.id}
-                                >
-                                  {deleting === item.id ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  )}
-                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>

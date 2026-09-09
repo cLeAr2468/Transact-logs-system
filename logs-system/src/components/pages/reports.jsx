@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import {
   FileDown,
   ArrowRightLeft,
-  Clock3,
   BadgeCheck,
   CircleCheck,
   MoreHorizontal,
@@ -13,6 +12,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Star,
+  MessageSquare,
 } from "lucide-react";
 
 import {
@@ -22,8 +23,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   CartesianGrid,
 } from "recharts";
 
@@ -50,10 +49,13 @@ export default function Reports() {
     target_percentage: 0,
     avg_processing_time: '0 min',
     most_requested: { purpose: 'N/A', count: 0 },
-    completion_rate: 0
+    completion_rate: 0,
+    avg_rating: 0,
+    total_feedback: 0
   });
   const [purposeData, setPurposeData] = useState([]);
   const [recentReports, setRecentReports] = useState([]);
+  const [feedbackData, setFeedbackData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   
@@ -71,6 +73,10 @@ export default function Reports() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [clearingReports, setClearingReports] = useState(false);
+  
+  // Pagination state for feedback table
+  const [feedbackCurrentPage, setFeedbackCurrentPage] = useState(1);
+  const [feedbackItemsPerPage] = useState(10);
 
   // Report type descriptions
   const reportTypeDescriptions = {
@@ -114,31 +120,74 @@ export default function Reports() {
         'Content-Type': 'application/json',
       };
 
-      // Fetch all data in parallel
-      const [statsRes, purposeRes, reportsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/reports/statistics`, { headers }),
-        fetch(`${API_BASE_URL}/reports/by-purpose`, { headers }),
-        fetch(`${API_BASE_URL}/reports/recent`, { headers })
+      // Fetch statistics and purposes in parallel (critical data)
+      const [statsRes, purposeRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/reports/statistics`, { headers }).catch(err => {
+          console.error('Stats fetch failed:', err);
+          return { ok: false };
+        }),
+        fetch(`${API_BASE_URL}/reports/by-purpose`, { headers }).catch(err => {
+          console.error('Purpose data fetch failed:', err);
+          return { ok: false };
+        })
       ]);
 
       if (statsRes.ok) {
         const statsData = await statsRes.json();
-        setStatistics(statsData.statistics);
+        setStatistics({
+          ...statsData.statistics,
+          avg_rating: statsData.statistics.avg_rating || 0,
+          total_feedback: statsData.statistics.total_feedback || 0
+        });
+      } else {
+        console.warn('Failed to load statistics');
       }
 
       if (purposeRes.ok) {
         const purposeResData = await purposeRes.json();
-        setPurposeData(purposeResData.data);
+        setPurposeData(purposeResData.data || []);
+      } else {
+        console.warn('Failed to load purpose data');
       }
 
-      if (reportsRes.ok) {
-        const reportsResData = await reportsRes.json();
-        setRecentReports(reportsResData.reports);
+      // Fetch recent reports (non-critical, can fail gracefully)
+      try {
+        const reportsRes = await fetch(`${API_BASE_URL}/reports/recent`, { headers });
+        if (reportsRes.ok) {
+          const reportsResData = await reportsRes.json();
+          setRecentReports(reportsResData.reports || []);
+        }
+      } catch (err) {
+        console.warn('Failed to load recent reports:', err);
+      }
+
+      // Fetch feedback data and statistics (non-critical)
+      try {
+        const [feedbackRes, feedbackStatsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/feedback?per_page=1000`, { headers }),
+          fetch(`${API_BASE_URL}/feedback/statistics`, { headers })
+        ]);
+        
+        if (feedbackRes.ok && feedbackStatsRes.ok) {
+          const feedbackResData = await feedbackRes.json();
+          const statsResData = await feedbackStatsRes.json();
+          
+          setFeedbackData(feedbackResData.data || []);
+          
+          setStatistics(prev => ({
+            ...prev,
+            avg_rating: statsResData.average_rating || 0,
+            total_feedback: statsResData.total || 0
+          }));
+        }
+      } catch (error) {
+        console.warn('Feedback data unavailable:', error);
+        setFeedbackData([]);
       }
 
     } catch (error) {
       console.error('Error fetching reports data:', error);
-      toast.error('Failed to load reports data');
+      toast.error('Failed to load reports data. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
@@ -365,7 +414,7 @@ export default function Reports() {
               <CardContent className="p-5">
                 <div className="flex justify-between mb-4">
                   <div className="bg-yellow-100 p-2 rounded-xl">
-                    <Clock3 className="w-4 h-4 text-yellow-600" />
+                    <Star className="w-4 h-4 text-yellow-600" />
                   </div>
 
                   <Badge className="bg-blue-100 text-blue-600">
@@ -373,17 +422,20 @@ export default function Reports() {
                   </Badge>
                 </div>
 
-                <h2 className="text-3xl font-bold">{statistics.avg_processing_time}</h2>
+                <h2 className="text-3xl font-bold">{(statistics.avg_rating || 0).toFixed(1)}/5.0</h2>
                 <p className="text-muted-foreground text-sm">
-                  Avg. Processing Time
+                  Feedback & Rates
                 </p>
 
                 <div className="w-full h-2 bg-gray-200 rounded-full mt-4">
-                  <div className="w-[55%] h-full bg-yellow-500 rounded-full" />
+                  <div 
+                    className="h-full bg-yellow-500 rounded-full" 
+                    style={{ width: `${((statistics.avg_rating || 0) / 5) * 100}%` }}
+                  />
                 </div>
 
                 <p className="text-xs text-gray-400 mt-2">
-                  Processing efficiency
+                  {(statistics.total_feedback || 0).toLocaleString()} total feedback
                 </p>
               </CardContent>
             </Card>
@@ -633,6 +685,143 @@ export default function Reports() {
                         size="sm"
                         onClick={() => setCurrentPage(prev => Math.min(Math.ceil(recentReports.length / itemsPerPage), prev + 1))}
                         disabled={currentPage >= Math.ceil(recentReports.length / itemsPerPage)}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Feedback and Rates Table */}
+        <Card className="border-0 shadow-sm rounded-2xl mt-6">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-[#15592F]" />
+                  User Feedback & Ratings
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  View all user feedback and ratings for transactions
+                </p>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading feedback data...
+              </div>
+            ) : feedbackData.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground bg-gray-50 rounded-lg border-2 border-dashed">
+                <Star className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                <p className="font-medium">No feedback available</p>
+                <p className="text-sm mt-1">Feedback will appear here once users submit ratings</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Student Name</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Student ID</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Transaction</th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Rating</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Feedback</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {feedbackData
+                        .slice((feedbackCurrentPage - 1) * feedbackItemsPerPage, feedbackCurrentPage * feedbackItemsPerPage)
+                        .map((feedback, index) => {
+                          const studentName = feedback.user 
+                            ? `${feedback.user.fname || ''} ${feedback.user.mname || ''} ${feedback.user.lname || ''}`.trim()
+                            : 'N/A';
+                          
+                          return (
+                            <tr
+                              key={feedback.id || index}
+                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                            >
+                              <td className="py-4 px-4">
+                                <div className="font-medium text-gray-900">
+                                  {studentName}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4 text-sm text-gray-600">
+                                {feedback.user?.student_id || 'N/A'}
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm text-gray-900">
+                                  General Feedback
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center justify-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      className={`w-4 h-4 ${
+                                        star <= (feedback.rating || 0)
+                                          ? 'fill-yellow-400 text-yellow-400'
+                                          : 'text-gray-300'
+                                      }`}
+                                    />
+                                  ))}
+                                  <span className="ml-2 text-sm font-semibold text-gray-700">
+                                    {feedback.rating || 0}/5
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-4 px-4 max-w-xs">
+                                <div className="text-sm text-gray-600 truncate" title={feedback.message || 'No comment'}>
+                                  {feedback.message || 'No comment provided'}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4 text-sm text-gray-600">
+                                {feedback.created_at ? new Date(feedback.created_at).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                }) : 'N/A'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Pagination for Feedback */}
+                {feedbackData.length > feedbackItemsPerPage && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                    <div className="text-sm text-gray-600">
+                      Showing {((feedbackCurrentPage - 1) * feedbackItemsPerPage) + 1} to {Math.min(feedbackCurrentPage * feedbackItemsPerPage, feedbackData.length)} of {feedbackData.length} feedback
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFeedbackCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={feedbackCurrentPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+                      <div className="text-sm text-gray-600 px-3">
+                        Page {feedbackCurrentPage} of {Math.ceil(feedbackData.length / feedbackItemsPerPage)}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFeedbackCurrentPage(prev => Math.min(Math.ceil(feedbackData.length / feedbackItemsPerPage), prev + 1))}
+                        disabled={feedbackCurrentPage >= Math.ceil(feedbackData.length / feedbackItemsPerPage)}
                       >
                         Next
                         <ChevronRight className="w-4 h-4 ml-1" />
