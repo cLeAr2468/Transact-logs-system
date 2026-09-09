@@ -81,9 +81,20 @@ export default function TransactionForm() {
         console.log('✅ Available slots:', data.available_slots);
         console.log('📈 Slot details:', data.slot_details);
         
+        // Check if slot_details exists and has data
+        if (!data.slot_details || Object.keys(data.slot_details).length === 0) {
+          console.warn('⚠️ No slot_details received from backend!');
+        }
+        
         setAvailableSlots(data.available_slots || { morning: [], afternoon: [] });
         setFullSlots(data.full_slots || []);
         setSlotDetails(data.slot_details || {});
+        
+        console.log('💾 State updated:', {
+          availableSlots: data.available_slots,
+          fullSlots: data.full_slots,
+          slotDetails: data.slot_details
+        });
         
         if (selectedTime && data.full_slots?.includes(selectedTime)) {
           console.log('⚠️ Selected time is now full, clearing selection');
@@ -91,6 +102,8 @@ export default function TransactionForm() {
         }
       } else {
         console.error('❌ Failed to fetch slots:', response.status);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Error data:', errorData);
         toast.error('Failed to fetch available time slots');
       }
     } catch (error) {
@@ -108,7 +121,9 @@ export default function TransactionForm() {
   };
 
   const getSlotInfo = (timeSlot) => {
-    return slotDetails[timeSlot] || { total: 5, booked: 0, available: 5 };
+    const info = slotDetails[timeSlot] || { total: 5, booked: 0, available: 5 };
+    // console.log(`Slot ${timeSlot} info:`, info);
+    return info;
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -503,7 +518,11 @@ export default function TransactionForm() {
                         return (
                           <button
                             key={time}
-                            onClick={() => isAvailable && setSelectedTime(time)}
+                            onClick={() => {
+                              if (isAvailable && !loadingSlots && isUserValidated) {
+                                setSelectedTime(time);
+                              }
+                            }}
                             disabled={!isUserValidated || !isAvailable || loadingSlots}
                             className={`py-2 px-3 rounded-lg text-sm transition-all relative ${
                               isSelected
@@ -517,11 +536,11 @@ export default function TransactionForm() {
                             {scheduleDate && (
                               <div className="text-xs mt-1">
                                 {isAvailable ? (
-                                  <span className={slotInfo.available <= 2 ? 'text-orange-500' : ''}>
-                                    {slotInfo.available}/5
+                                  <span className={slotInfo.available <= 2 ? 'text-orange-500 font-semibold' : ''}>
+                                    {slotInfo.available}/{slotInfo.total}
                                   </span>
                                 ) : (
-                                  <span className="text-red-600">Full</span>
+                                  <span className="text-red-600 font-semibold">0/5</span>
                                 )}
                               </div>
                             )}
@@ -544,7 +563,11 @@ export default function TransactionForm() {
                         return (
                           <button
                             key={time}
-                            onClick={() => isAvailable && setSelectedTime(time)}
+                            onClick={() => {
+                              if (isAvailable && !loadingSlots && isUserValidated) {
+                                setSelectedTime(time);
+                              }
+                            }}
                             disabled={!isUserValidated || !isAvailable || loadingSlots}
                             className={`py-2 px-3 rounded-lg text-sm transition-all relative ${
                               isSelected
@@ -558,11 +581,11 @@ export default function TransactionForm() {
                             {scheduleDate && (
                               <div className="text-xs mt-1">
                                 {isAvailable ? (
-                                  <span className={slotInfo.available <= 2 ? 'text-orange-500' : ''}>
-                                    {slotInfo.available}/5
+                                  <span className={slotInfo.available <= 2 ? 'text-orange-500 font-semibold' : ''}>
+                                    {slotInfo.available}/{slotInfo.total}
                                   </span>
                                 ) : (
-                                  <span className="text-red-600">Full</span>
+                                  <span className="text-red-600 font-semibold">0/5</span>
                                 )}
                               </div>
                             )}
