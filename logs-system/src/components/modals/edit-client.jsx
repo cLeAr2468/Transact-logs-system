@@ -325,10 +325,10 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
                   <SelectValue placeholder="Select year" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1st Year">1st Year</SelectItem>
-                  <SelectItem value="2nd Year">2nd Year</SelectItem>
-                  <SelectItem value="3rd Year">3rd Year</SelectItem>
-                  <SelectItem value="4th Year">4th Year</SelectItem>
+                  <SelectItem value="1st Year">1</SelectItem>
+                  <SelectItem value="2nd Year">2</SelectItem>
+                  <SelectItem value="3rd Year">3</SelectItem>
+                  <SelectItem value="4th Year">4</SelectItem>
                 </SelectContent>
               </Select>
             </div>

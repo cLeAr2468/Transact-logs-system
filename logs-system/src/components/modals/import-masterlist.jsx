@@ -260,13 +260,14 @@ const ImportMasterlistDialog = ({ isOpen, onClose, onImportSuccess }) => {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="font-semibold text-blue-900 mb-2">Important Requirements:</h3>
+                    <h3 className="font-semibold text-blue-900 mb-2">✨ Flexible Import - Any CSV Format Accepted!</h3>
                     <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• The first row must contain column headers: student_id, fname, mname, lname, email, course, year_level</li>
+                      <li>• <strong>Automatic field detection:</strong> The system will intelligently identify columns regardless of header names</li>
+                      <li>• <strong>Required information:</strong> ID Number, First Name, Last Name, Email, Course/Program, Year Level</li>
+                      <li>• <strong>Extra columns?</strong> No problem! Unnecessary columns will be automatically ignored</li>
+                      <li>• <strong>Different formats accepted:</strong> "First Name" / "FirstName" / "fname" / etc.</li>
+                      <li>• Middle name is optional, all other fields are required</li>
                       <li>• Student ID and email must be unique</li>
-                      <li>• Middle name (mname) is optional, other fields are required</li>
-                      <li>• Course names must match existing programs (BSIT, BSCS, BEED, etc.)</li>
-                      <li>• Year level format: "1st Year", "2nd Year", "3rd Year", "4th Year"</li>
                     </ul>
                   </div>
                 </div>
@@ -358,10 +359,18 @@ const ImportMasterlistDialog = ({ isOpen, onClose, onImportSuccess }) => {
               </div>
 
               {/* Info Message */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                  Please review the data structure above. Once you click "Finish Import", the records will be added to the student database.
-                </p>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-green-800 font-medium mb-1">
+                      Intelligent Field Detection Active
+                    </p>
+                    <p className="text-sm text-green-700">
+                      The system will automatically identify and extract only the required fields from your CSV. Extra columns will be safely ignored. Click "Finish Import" to proceed.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Buttons */}
