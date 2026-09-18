@@ -268,10 +268,10 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
                   <SelectValue placeholder="Select year level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1st Year">1</SelectItem>
-                  <SelectItem value="2nd Year">2</SelectItem>
-                  <SelectItem value="3rd Year">3</SelectItem>
-                  <SelectItem value="4th Year">4</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                  <SelectItem value="4">4</SelectItem>
                 </SelectContent>
               </Select>
             </div>
