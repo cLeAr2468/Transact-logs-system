@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import AddressSelector from "@/components/common/AddressSelector";
 
 import {
   User,
@@ -346,43 +347,24 @@ function Register() {
                         </SelectContent>
                       </Select>
                     </div>
-                                  <div>
-                <label className="mb-1.5 block text-sm font-medium">
-                  Barangay:
-                </label>
-                <Input
-                  id="barangay"
-                  placeholder="Barangay"
-                  className="h-9 border border-gray-300 bg-white text-sm"
-                  value={form.barangay}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">
-                  City/Municipality:
-                </label>
-                <Input
-                  id="municipality"
-                  placeholder="City/Municipality"
-                  className="h-9 border border-gray-300 bg-white text-sm"
-                  value={form.municipality}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">
-                  Province:
-                </label>
-                <Input
-                  id="province"
-                  placeholder="Province"
-                  className="h-9 border border-gray-300 bg-white text-sm"
-                  value={form.province}
-                  onChange={handleChange}
-                  required
+                                  {/* Address Selector */}
+              <div className="md:col-span-2">
+                <h3 className="text-sm font-semibold mb-3">Address Information</h3>
+                <AddressSelector
+                  province={form.province}
+                  municipality={form.municipality}
+                  barangay={form.barangay}
+                  onProvinceChange={(value) =>
+                    setForm({ ...form, province: value, municipality: "", barangay: "" })
+                  }
+                  onMunicipalityChange={(value) =>
+                    setForm({ ...form, municipality: value, barangay: "" })
+                  }
+                  onBarangayChange={(value) => 
+                    setForm({ ...form, barangay: value })
+                  }
+                  required={true}
+                  layout="grid"
                 />
               </div>
 
