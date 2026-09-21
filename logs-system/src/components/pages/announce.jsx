@@ -6,6 +6,7 @@ import { Search, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -45,6 +46,8 @@ export default function AnnouncementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [deleting, setDeleting] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -170,6 +173,17 @@ export default function AnnouncementPage() {
     return matchesSearch && matchesStatus;
   });
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAnnouncements.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedAnnouncements = filteredAnnouncements.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -293,7 +307,7 @@ export default function AnnouncementPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredAnnouncements.map((item) => (
+                        paginatedAnnouncements.map((item) => (
                           <TableRow key={item.id} className="align-top">
                             <TableCell className="w-1/3 align-top py-4">
                               <div className="flex flex-col gap-1">
@@ -356,6 +370,15 @@ export default function AnnouncementPage() {
                       )}
                     </TableBody>
                   </Table>
+                  
+                  {/* Pagination */}
+                  {!loading && filteredAnnouncements.length > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>

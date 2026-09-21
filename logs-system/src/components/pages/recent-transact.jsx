@@ -341,13 +341,12 @@ const RecentTransact = () => {
                       <TableHead className="w-[120px]">Action</TableHead>
                       <TableHead className="w-[140px]">Module</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="w-[130px]">IP Address</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={isAdmin ? 7 : 5} className="text-center py-12">
+                        <TableCell colSpan={isAdmin ? 6 : 4} className="text-center py-12">
                           <div className="flex flex-col items-center">
                             <Loader2 className="w-8 h-8 animate-spin text-[#15592F] mb-2" />
                             <span className="text-gray-500">Loading activity logs...</span>
@@ -356,7 +355,7 @@ const RecentTransact = () => {
                       </TableRow>
                     ) : activityLogs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={isAdmin ? 7 : 5} className="text-center py-12 text-gray-500">
+                        <TableCell colSpan={isAdmin ? 6 : 4} className="text-center py-12 text-gray-500">
                           No activity logs found
                         </TableCell>
                       </TableRow>
@@ -393,9 +392,6 @@ const RecentTransact = () => {
                           </TableCell>
                           <TableCell className="capitalize">{log.module}</TableCell>
                           <TableCell className="text-sm">{log.description}</TableCell>
-                          <TableCell className="text-sm text-gray-500">
-                            {log.ip_address || 'N/A'}
-                          </TableCell>
                         </TableRow>
                       ))
                     )}

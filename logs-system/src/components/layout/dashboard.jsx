@@ -3,6 +3,7 @@ import { Calendar, RefreshCw, CheckCircle, Star, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Pagination } from '@/components/ui/pagination';
 import {
   Table,
   TableHeader,
@@ -34,6 +35,8 @@ const Dashboard = () => {
   const [statistics, setStatistics] = useState(null);
   const [activityLogs, setActivityLogs] = useState([]);
   const [performanceData, setPerformanceData] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://logs-server-system-production.up.railway.app/api';
 
@@ -72,7 +75,7 @@ const Dashboard = () => {
       // Fetch all dashboard data in parallel with date range filters
       const [statsRes, activityLogsRes, performanceRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/dashboard/statistics?${params}`, { headers }),
-        fetch(`${API_BASE_URL}/activity-logs/recent?limit=10`, { headers }),
+        fetch(`${API_BASE_URL}/activity-logs/recent?limit=100`, { headers }), // Increased limit for pagination
         fetch(`${API_BASE_URL}/admin/dashboard/performance?${params}`, { headers })
       ]);
 
@@ -207,6 +210,12 @@ const stats = statistics ? [
     rating: statistics.feedback_score || 0
   }
 ] : [];
+
+// Pagination logic for activity logs
+  const totalPages = Math.ceil(activityLogs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedActivityLogs = activityLogs.slice(startIndex, endIndex);
 
 // ...existing code...
 
@@ -391,7 +400,7 @@ const stats = statistics ? [
                             </TableCell>
                           </TableRow>
                         ) : (
-                          activityLogs.map((log, index) => (
+                          paginatedActivityLogs.map((log, index) => (
                             <TableRow key={log.id || index}>
                               <TableCell className="text-sm">
                                 {new Date(log.created_at).toLocaleString('en-US', {
@@ -415,6 +424,15 @@ const stats = statistics ? [
                         )}
                       </TableBody>
                     </Table>
+                    
+                    {/* Pagination */}
+                    {!loading && activityLogs.length > 0 && (
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               </div>

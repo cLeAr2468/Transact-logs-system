@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Pagination } from '@/components/ui/pagination';
 import {
   Select,
   SelectContent,
@@ -40,6 +41,8 @@ const ManageClient = () => {
     active: 0,
     inactive: 0
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch users and statistics on component mount
   useEffect(() => {
@@ -117,6 +120,17 @@ const ManageClient = () => {
 
     return matchesSearch && matchesCourse && matchesStatus;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCourse, selectedStatus]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -334,7 +348,7 @@ const ManageClient = () => {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredUsers.map((user) => (
+                          paginatedUsers.map((user) => (
                             <TableRow key={user.id}>
                               <TableCell className="font-medium">{user.student_id}</TableCell>
                               <TableCell className="font-medium">
@@ -369,6 +383,15 @@ const ManageClient = () => {
                         )}
                       </TableBody>
                     </Table>
+                  )}
+                  
+                  {/* Pagination */}
+                  {!loading && filteredUsers.length > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
                   )}
                 </div>
               </CardContent>

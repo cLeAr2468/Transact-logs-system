@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Pagination } from '@/components/ui/pagination';
 import {
   Select,
   SelectContent,
@@ -36,6 +37,8 @@ const Masteerlist = () => {
   const [masterlistData, setMasterlistData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch masterlist data on component mount
   useEffect(() => {
@@ -76,6 +79,17 @@ const Masteerlist = () => {
 
     return matchesSearch && matchesCourse;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredMasterlist.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedMasterlist = filteredMasterlist.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search or course filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCourse]);
 
   const handleEditClick = (item) => {
     setSelectedMasterlist(item);
@@ -249,7 +263,7 @@ const Masteerlist = () => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredMasterlist.map((item) => (
+                        paginatedMasterlist.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.student_id}</TableCell>
                             <TableCell>
@@ -283,6 +297,15 @@ const Masteerlist = () => {
                       )}
                     </TableBody>
                   </Table>
+                  
+                  {/* Pagination */}
+                  {filteredMasterlist.length > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>
