@@ -45,6 +45,15 @@ export default function TransactionForm() {
   // Fetch available slots when date changes
   useEffect(() => {
     if (scheduleDate) {
+      // Check if selected date is a weekend
+      if (isDateDisabled(scheduleDate)) {
+        toast.error('Weekends are not available for appointments. Please select a weekday.');
+        setScheduleDate('');
+        setAvailableSlots({ morning: [], afternoon: [] });
+        setFullSlots([]);
+        setSlotDetails({});
+        return;
+      }
       fetchAvailableSlots();
     }
   }, [scheduleDate]);
@@ -127,6 +136,20 @@ export default function TransactionForm() {
   };
 
   const today = new Date().toISOString().split('T')[0];
+
+  // Function to check if a date is a weekend (Saturday or Sunday)
+  const isWeekend = (dateString) => {
+    const date = new Date(dateString + 'T00:00:00');
+    const day = date.getDay();
+    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+  };
+
+  // Function to check if date should be disabled
+  const isDateDisabled = (dateString) => {
+    return isWeekend(dateString);
+    // Future: Add holiday checking here
+    // return isWeekend(dateString) || isHoliday(dateString);
+  };
 
   const morningTimes = [
     "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
@@ -408,13 +431,38 @@ export default function TransactionForm() {
                         <Calendar size={14} />
                         Schedule Date
                       </label>
+                      <style>{`
+                        /* Hide weekend dates in calendar picker */
+                        input[type="date"]::-webkit-calendar-picker-indicator {
+                          cursor: pointer;
+                        }
+                        
+                        /* This selector targets the calendar but browser support varies */
+                        input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+                          background: white;
+                        }
+                      `}</style>
                       <Input 
                         type="date" 
                         value={scheduleDate}
-                        onChange={(e) => setScheduleDate(e.target.value)}
+                        onChange={(e) => {
+                          const selectedDate = e.target.value;
+                          if (isDateDisabled(selectedDate)) {
+                            toast.error('Saturdays and Sundays are not available for appointments');
+                            setScheduleDate('');
+                            return;
+                          }
+                          setScheduleDate(selectedDate);
+                        }}
                         min={today}
                         disabled={!isUserValidated}
+                        className="cursor-pointer"
+                        onKeyDown={(e) => e.preventDefault()} // Prevent manual typing
+                        title="Weekends are not available"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        * Weekends (Saturday & Sunday) are not available
+                      </p>
                     </div>
 
                     <div className="space-y-2">
