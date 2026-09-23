@@ -383,13 +383,12 @@ const stats = statistics ? [
                           <TableHead>Action</TableHead>
                           <TableHead>Module</TableHead>
                           <TableHead>Description</TableHead>
-                          <TableHead>IP Address</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {loading ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8">
+                            <TableCell colSpan={4} className="text-center py-8">
                               <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
                             </TableCell>
                           </TableRow>
@@ -418,7 +417,6 @@ const stats = statistics ? [
                               </TableCell>
                               <TableCell className="font-medium">{log.module || 'System'}</TableCell>
                               <TableCell className="text-sm text-gray-600">{log.description || '-'}</TableCell>
-                              <TableCell className="text-sm text-gray-500">{log.ip_address || '-'}</TableCell>
                             </TableRow>
                           ))
                         )}

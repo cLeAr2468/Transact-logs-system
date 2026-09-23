@@ -30,8 +30,12 @@ const RecentTransact = () => {
   const [pagination, setPagination] = useState({
     current_page: 1,
     last_page: 1,
-    per_page: 20,
+    per_page: 10,
     total: 0,
+  });
+  const [dateFilter, setDateFilter] = useState({
+    startDate: '',
+    endDate: '',
   });
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://logs-server-system-production.up.railway.app/api';
@@ -47,7 +51,7 @@ const RecentTransact = () => {
 
   useEffect(() => {
     fetchActivityLogs();
-  }, [pagination.current_page, filterType]);
+  }, [pagination.current_page, filterType, dateFilter]);
 
   const fetchStatistics = async () => {
     try {
@@ -103,6 +107,14 @@ const RecentTransact = () => {
         params.append('filter_type', filterType);
       }
 
+      // Add date filters if provided
+      if (dateFilter.startDate) {
+        params.append('start_date', dateFilter.startDate);
+      }
+      if (dateFilter.endDate) {
+        params.append('end_date', dateFilter.endDate);
+      }
+
       const response = await fetch(`${API_BASE_URL}/activity-logs?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -118,7 +130,7 @@ const RecentTransact = () => {
         setPagination({
           current_page: data.current_page || 1,
           last_page: data.last_page || 1,
-          per_page: data.per_page || 20,
+          per_page: data.per_page || 10,
           total: data.total || 0,
         });
       } else {
@@ -213,6 +225,23 @@ const RecentTransact = () => {
     }
   };
 
+  const handleDateFilterChange = (field, value) => {
+    setDateFilter(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Reset to page 1 when filter changes
+    setPagination(prev => ({ ...prev, current_page: 1 }));
+  };
+
+  const clearDateFilter = () => {
+    setDateFilter({
+      startDate: '',
+      endDate: '',
+    });
+    setPagination(prev => ({ ...prev, current_page: 1 }));
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full">
@@ -227,15 +256,6 @@ const RecentTransact = () => {
                   {isAdmin ? 'View all system activities' : 'View your activity records'}
                 </p>
               </div>
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={handleClearLogs}
-                disabled={loading || activityLogs.length === 0}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear All Logs
-              </Button>
             </div>
 
             {/* Statistics Cards (Admin Only) */}
@@ -312,7 +332,7 @@ const RecentTransact = () => {
             {/* Activity Logs Table */}
             <Card className="bg-white border-0 shadow-sm">
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <CardTitle className="text-lg font-semibold">
                     {filterType === null && 'All Activities'}
                     {filterType === 'admin' && 'Admin Activities'}
@@ -320,15 +340,50 @@ const RecentTransact = () => {
                     {filterType === 'client' && 'Client Activities'}
                     {' '}({pagination.total.toLocaleString()})
                   </CardTitle>
-                  {isAdmin && filterType !== null && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setFilterType(null)}
-                    >
-                      Clear Filter
-                    </Button>
-                  )}
+                  
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+                    {/* Date Filter */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <Input
+                          type="date"
+                          value={dateFilter.startDate}
+                          onChange={(e) => handleDateFilterChange('startDate', e.target.value)}
+                          className="w-[140px] text-sm"
+                          placeholder="Start Date"
+                        />
+                      </div>
+                      <span className="text-gray-500 text-sm">to</span>
+                      <Input
+                        type="date"
+                        value={dateFilter.endDate}
+                        onChange={(e) => handleDateFilterChange('endDate', e.target.value)}
+                        className="w-[140px] text-sm"
+                        placeholder="End Date"
+                      />
+                      {(dateFilter.startDate || dateFilter.endDate) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={clearDateFilter}
+                          className="text-xs"
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+
+                    {isAdmin && filterType !== null && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setFilterType(null)}
+                      >
+                        Clear Filter
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

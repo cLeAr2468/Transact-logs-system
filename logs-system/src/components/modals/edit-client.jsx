@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { updateUser } from '../../api/userApi';
 import { toast } from "sonner";
+import AddressSelector from '@/components/common/AddressSelector';
 
 const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
   const [formData, setFormData] = useState({
@@ -237,54 +238,6 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
               />
             </div>
 
-            {/* Barangay */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Barangay <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="text"
-                name="barangay"
-                value={formData.barangay}
-                onChange={handleInputChange}
-                placeholder="Enter barangay"
-                className="w-full"
-                disabled={loading}
-              />
-            </div>
-
-            {/* Municipality */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Municipality <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="text"
-                name="municipality"
-                value={formData.municipality}
-                onChange={handleInputChange}
-                placeholder="Enter municipality"
-                className="w-full"
-                disabled={loading}
-              />
-            </div>
-
-            {/* Province */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Province <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="text"
-                name="province"
-                value={formData.province}
-                onChange={handleInputChange}
-                placeholder="Enter province"
-                className="w-full"
-                disabled={loading}
-              />
-            </div>
-
             {/* Course */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -351,6 +304,31 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
                   <SelectItem value="Inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Address Information - Using AddressSelector Component */}
+            <div className="md:col-span-2 border-t pt-4 mt-2">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Address Information</h3>
+              <AddressSelector
+                province={formData.province}
+                municipality={formData.municipality}
+                barangay={formData.barangay}
+                onProvinceChange={(value) => {
+                  setFormData({ ...formData, province: value, municipality: "", barangay: "" });
+                  setError(""); // Clear error
+                }}
+                onMunicipalityChange={(value) => {
+                  setFormData({ ...formData, municipality: value, barangay: "" });
+                  setError(""); // Clear error
+                }}
+                onBarangayChange={(value) => {
+                  setFormData({ ...formData, barangay: value });
+                  setError(""); // Clear error
+                }}
+                required={true}
+                disabled={loading}
+                layout="grid"
+              />
             </div>
           </div>
 
