@@ -535,6 +535,7 @@ const Transaction = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date</TableHead>
+                        <TableHead>Time Slot</TableHead>
                         <TableHead>Student</TableHead>
                         <TableHead>Purpose</TableHead>
                         <TableHead>Address</TableHead>
@@ -549,7 +550,7 @@ const Transaction = () => {
                     <TableBody>
                       {loading ? (
                         <TableRow>
-                          <TableCell colSpan={filter !== "Completed" ? 7 : 6} className="text-center py-8">
+                          <TableCell colSpan={filter !== "Completed" ? 8 : 7} className="text-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
                             <p className="text-gray-500 mt-2">Loading transactions...</p>
                           </TableCell>
@@ -560,10 +561,14 @@ const Transaction = () => {
                           const address = `${item.brgy}, ${item.municipality}`;
                           const course = item.user?.course || 'N/A';
                           const displayStatus = getDisplayStatus(item.status);
+                          const timeSlot = item.time_slot || 'N/A';
 
                           return (
                             <TableRow key={item.id}>
                               <TableCell>{formatDate(item.schedule_date)}</TableCell>
+                              <TableCell className="text-sm font-medium text-gray-700">
+                                {timeSlot}
+                              </TableCell>
                               <TableCell className="font-medium">
                                 {studentName}
                               </TableCell>
@@ -645,7 +650,7 @@ const Transaction = () => {
                       ) : (
                         <TableRow>
                           <TableCell
-                            colSpan={filter !== "Completed" ? 7 : 6}
+                            colSpan={filter !== "Completed" ? 8 : 7}
                             className="text-center py-8 text-gray-500"
                           >
                             {searchQuery
