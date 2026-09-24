@@ -721,7 +721,6 @@ export default function Reports() {
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Student Name</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Student ID</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Transaction Purpose</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Schedule</th>
                         <th className="text-center py-3 px-4 font-semibold text-gray-700">Rating</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Feedback</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
@@ -736,14 +735,6 @@ export default function Reports() {
                             : 'N/A';
                           
                           const transactionPurpose = feedback.transaction?.purpose || 'N/A';
-                          const scheduleDate = feedback.transaction?.schedule_date 
-                            ? new Date(feedback.transaction.schedule_date).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })
-                            : 'N/A';
-                          const timeSlot = feedback.transaction?.time_slot || '';
                           
                           return (
                             <tr
@@ -762,16 +753,6 @@ export default function Reports() {
                                 <div className="text-sm text-gray-900 font-medium">
                                   {transactionPurpose}
                                 </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="text-sm text-gray-900">
-                                  {scheduleDate}
-                                </div>
-                                {timeSlot && (
-                                  <div className="text-xs text-gray-500">
-                                    {timeSlot}
-                                  </div>
-                                )}
                               </td>
                               <td className="py-4 px-4">
                                 <div className="flex items-center justify-center gap-1">
