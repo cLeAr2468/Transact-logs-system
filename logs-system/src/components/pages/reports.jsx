@@ -588,18 +588,7 @@ export default function Reports() {
                   View and download previously generated analytics
                 </p>
               </div>
-              
-              {recentReports.length > 0 && (
-                <Button
-                  variant="outline"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                  onClick={handleClearAllReports}
-                  disabled={clearingReports}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  {clearingReports ? 'Clearing...' : 'Clear All'}
-                </Button>
-              )}
+            
             </div>
 
             {loading ? (
