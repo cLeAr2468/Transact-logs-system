@@ -75,8 +75,8 @@ export default function TransactionForm() {
       
       // Include user_id if available (from validated student)
       let url = `${import.meta.env.VITE_API_URL}/appointments/available-slots?date=${scheduleDate}`;
-      if (validatedStudent?.id) {
-        url += `&user_id=${validatedStudent.id}`;
+      if (userData?.id) {
+        url += `&user_id=${userData.id}`;
       }
       
       console.log('🔍 Fetching slots for date:', scheduleDate);
