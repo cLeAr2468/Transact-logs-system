@@ -161,7 +161,6 @@ export default function Announcement() {
   </SelectTrigger>
 
   <SelectContent>
-    <SelectItem value="archive">Archive</SelectItem>
     <SelectItem value="draft">Draft</SelectItem>
     <SelectItem value="published">Published</SelectItem>
   </SelectContent>

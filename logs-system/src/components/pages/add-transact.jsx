@@ -73,7 +73,12 @@ export default function TransactionForm() {
     try {
       const token = localStorage.getItem('admin_token');
       
-      const url = `${import.meta.env.VITE_API_URL}/appointments/available-slots?date=${scheduleDate}`;
+      // Include user_id if available (from validated student)
+      let url = `${import.meta.env.VITE_API_URL}/appointments/available-slots?date=${scheduleDate}`;
+      if (validatedStudent?.id) {
+        url += `&user_id=${validatedStudent.id}`;
+      }
+      
       console.log('🔍 Fetching slots for date:', scheduleDate);
       console.log('🔍 API URL:', url);
       
@@ -130,9 +135,23 @@ export default function TransactionForm() {
   };
 
   const getSlotInfo = (timeSlot) => {
-    const info = slotDetails[timeSlot] || { total: 5, booked: 0, available: 5 };
+    const info = slotDetails[timeSlot] || { 
+      total_user_slots: 5, 
+      booked_users: 0, 
+      available_user_slots: 5,
+      user_transactions: 0,
+      user_can_book: true,
+      max_transactions_per_user: 3
+    };
     // console.log(`Slot ${timeSlot} info:`, info);
-    return info;
+    return {
+      total: info.total_user_slots || info.total || 5,
+      booked: info.booked_users || info.booked || 0,
+      available: info.available_user_slots || info.available || 5,
+      userTransactions: info.user_transactions || 0,
+      userCanBook: info.user_can_book !== undefined ? info.user_can_book : true,
+      maxPerUser: info.max_transactions_per_user || 3
+    };
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -584,11 +603,18 @@ export default function TransactionForm() {
                             {scheduleDate && (
                               <div className="text-xs mt-1">
                                 {isAvailable ? (
-                                  <span className={slotInfo.available <= 2 ? 'text-orange-500 font-semibold' : ''}>
-                                    {slotInfo.available}/{slotInfo.total}
-                                  </span>
+                                  <>
+                                    <span className={slotInfo.available <= 2 ? 'text-orange-500 font-semibold' : isSelected ? 'text-white' : ''}>
+                                      {slotInfo.available}/{slotInfo.total} users
+                                    </span>
+                                    {slotInfo.userTransactions > 0 && (
+                                      <div className={isSelected ? 'text-white opacity-90' : 'text-blue-600'}>
+                                        Student: {slotInfo.userTransactions}/{slotInfo.maxPerUser}
+                                      </div>
+                                    )}
+                                  </>
                                 ) : (
-                                  <span className="text-red-600 font-semibold">0/5</span>
+                                  <span className="text-red-600 font-semibold">Full</span>
                                 )}
                               </div>
                             )}
@@ -629,11 +655,18 @@ export default function TransactionForm() {
                             {scheduleDate && (
                               <div className="text-xs mt-1">
                                 {isAvailable ? (
-                                  <span className={slotInfo.available <= 2 ? 'text-orange-500 font-semibold' : ''}>
-                                    {slotInfo.available}/{slotInfo.total}
-                                  </span>
+                                  <>
+                                    <span className={slotInfo.available <= 2 ? 'text-orange-500 font-semibold' : isSelected ? 'text-white' : ''}>
+                                      {slotInfo.available}/{slotInfo.total} users
+                                    </span>
+                                    {slotInfo.userTransactions > 0 && (
+                                      <div className={isSelected ? 'text-white opacity-90' : 'text-blue-600'}>
+                                        Student: {slotInfo.userTransactions}/{slotInfo.maxPerUser}
+                                      </div>
+                                    )}
+                                  </>
                                 ) : (
-                                  <span className="text-red-600 font-semibold">0/5</span>
+                                  <span className="text-red-600 font-semibold">Full</span>
                                 )}
                               </div>
                             )}

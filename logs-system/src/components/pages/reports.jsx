@@ -4,7 +4,7 @@ import {
   FileDown,
   ArrowRightLeft,
   BadgeCheck,
-  CircleCheck,
+  CheckCircle2,
   MoreHorizontal,
   Download,
   FileText,
@@ -82,6 +82,7 @@ export default function Reports() {
   // Report type descriptions
   const reportTypeDescriptions = {
     "Student Affairs Services Summary": "Comprehensive summary of all student affairs services and transactions",
+    "Feedback Report": "Complete feedback and ratings report from all users per transaction",
     "Monthly Transaction Summary": "Monthly overview of all transaction activities",
     "Student ID Validation Report": "Report on student ID validation and verification services",
     "Good Moral Character Certificates": "Records of good moral character certificates issued",
@@ -194,6 +195,24 @@ export default function Reports() {
     }
   };
 
+  // Auto-configure checkboxes when report type changes
+  const handleReportTypeChange = (newReportType) => {
+    setReportType(newReportType);
+    
+    // Auto-configure for Feedback Report
+    if (newReportType === "Feedback Report") {
+      setIncludeSummary(false);  // Don't need transaction summary
+      setIncludeDetails(false);  // Don't need transaction details
+      setIncludeFeedback(true);  // Only feedback data
+      toast.info('Configured for Feedback Report (feedback data only)');
+    } else {
+      // Reset to default for other reports
+      setIncludeSummary(true);
+      setIncludeDetails(true);
+      setIncludeFeedback(false);
+    }
+  };
+
   const handleExportReport = async () => {
     // Validate that at least one section is selected
     if (!includeSummary && !includeDetails && !includeFeedback) {
@@ -239,7 +258,13 @@ export default function Reports() {
       });
 
       if (!response.ok) {
-        throw new Error('Export failed');
+        // Try to get error message from JSON response
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.message || errorData.error || 'Export failed');
+        } catch (jsonError) {
+          throw new Error('Export failed with status: ' + response.status);
+        }
       }
 
       // Get the filename from Content-Disposition header or use default
@@ -475,7 +500,7 @@ export default function Reports() {
               <CardContent className="p-5">
                 <div className="flex justify-between mb-4">
                   <div className="bg-purple-100 p-2 rounded-xl">
-                    <CircleCheck className="w-4 h-4 text-purple-600" />
+                    <CheckCircle2 className="w-4 h-4 text-purple-600" />
                   </div>
 
                   <Badge className="bg-green-100 text-green-700">
@@ -734,7 +759,8 @@ export default function Reports() {
                             ? `${feedback.user.fname || ''} ${feedback.user.mname || ''} ${feedback.user.lname || ''}`.trim()
                             : 'N/A';
                           
-                          const transactionPurpose = feedback.transaction?.purpose || 'N/A';
+                          // Use transaction_purpose directly from feedback, fallback to transaction_data
+                          const transactionPurpose = feedback.transaction_purpose || feedback.transaction_data?.purpose || 'N/A';
                           
                           return (
                             <tr
@@ -842,10 +868,11 @@ export default function Reports() {
                 <Label>Select Report Type</Label>
                 <select
                   value={reportType}
-                  onChange={(e) => setReportType(e.target.value)}
+                  onChange={(e) => handleReportTypeChange(e.target.value)}
                   className="w-full px-3 py-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#15592F]"
                 >
                   <option>Student Affairs Services Summary</option>
+                  <option>Feedback Report</option>
                   <option>Monthly Transaction Summary</option>
                   <option>Student ID Validation Report</option>
                   <option>Good Moral Character Certificates</option>
@@ -988,17 +1015,20 @@ export default function Reports() {
                       id="feedback"
                       checked={includeFeedback}
                       onCheckedChange={setIncludeFeedback}
+                      disabled={reportType !== "Feedback Report"}
                       className="mt-0.5"
                     />
                     <div className="flex-1">
                       <label
                         htmlFor="feedback"
-                        className="text-sm font-medium leading-none cursor-pointer"
+                        className={`text-sm font-medium leading-none ${reportType !== "Feedback Report" ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         Feedback Summary
                       </label>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        Include student feedback ratings and distribution
+                        {reportType === "Feedback Report" 
+                          ? "Include student feedback ratings and distribution" 
+                          : "Only available for Feedback Report type"}
                       </p>
                     </div>
                   </div>

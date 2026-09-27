@@ -58,6 +58,7 @@ export default function AnnouncementPage() {
     status: 'draft',
   });
   const [updating, setUpdating] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -166,6 +167,28 @@ export default function AnnouncementPage() {
     }
   };
 
+  const handleTogglePublish = async (announcement) => {
+    const newStatus = announcement.status === 'published' ? 'draft' : 'published';
+    const actionText = newStatus === 'published' ? 'Publish' : 'Unpublish';
+    
+    try {
+      setUpdatingStatus(announcement.id);
+      const formData = new FormData();
+      formData.append('status', newStatus);
+      formData.append('_method', 'PUT');
+
+      await updateAnnouncement(announcement.id, formData);
+      
+      toast.success(`Announcement ${actionText.toLowerCase()}ed successfully`);
+      fetchAnnouncements(); // Refresh list
+    } catch (error) {
+      console.error(`Error ${actionText.toLowerCase()}ing announcement:`, error);
+      toast.error(error.message || `Failed to ${actionText.toLowerCase()} announcement`);
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
   const filteredAnnouncements = announcements.filter((announcement) => {
     const matchesSearch = announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          announcement.content.toLowerCase().includes(searchTerm.toLowerCase());
@@ -261,9 +284,6 @@ export default function AnnouncementPage() {
                         <SelectItem value="draft">
                           Draft
                         </SelectItem>
-                        <SelectItem value="archive">
-                          Archive
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -352,16 +372,49 @@ export default function AnnouncementPage() {
 
                             <TableCell className="w-1/6 align-top py-4">
                               <div className="flex items-center justify-center gap-2">
-                                {/* Show edit icon only for draft or archive status */}
-                                {(item.status === 'draft' || item.status === 'archive') && (
+                                {item.status === 'published' ? (
+                                  // Show Unpublish button for published items
                                   <Button
-                                    size="icon"
+                                    size="sm"
                                     variant="outline"
-                                    className="h-8 w-8 flex-shrink-0 border-blue-500 text-blue-500 hover:bg-blue-50"
-                                    onClick={() => handleEdit(item)}
+                                    className="h-8 px-3 flex-shrink-0 border-orange-500 text-orange-600 hover:bg-orange-50"
+                                    onClick={() => handleTogglePublish(item)}
+                                    disabled={updatingStatus === item.id}
                                   >
-                                    <Pencil className="h-3.5 w-3.5" />
+                                    {updatingStatus === item.id ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                      'Unpublish'
+                                    )}
                                   </Button>
+                                ) : (
+                                  // Show edit button for draft status
+                                  <>
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      className="h-8 w-8 flex-shrink-0 border-blue-500 text-blue-500 hover:bg-blue-50"
+                                      onClick={() => handleEdit(item)}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                    
+                                    {item.status === 'draft' && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 px-3 flex-shrink-0 border-green-500 text-green-600 hover:bg-green-50"
+                                        onClick={() => handleTogglePublish(item)}
+                                        disabled={updatingStatus === item.id}
+                                      >
+                                        {updatingStatus === item.id ? (
+                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                          'Publish'
+                                        )}
+                                      </Button>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             </TableCell>
@@ -433,7 +486,6 @@ export default function AnnouncementPage() {
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="published">Published</SelectItem>
-                    <SelectItem value="archive">Archive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
