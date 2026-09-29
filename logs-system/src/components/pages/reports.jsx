@@ -959,17 +959,18 @@ export default function Reports() {
               <div className="space-y-2">
                 <Label>Include in Report</Label>
                 <div className="space-y-2 bg-gray-50 p-3 rounded-lg">
-                  <div className="flex items-start space-x-3">
+                  <div className={`flex items-start space-x-3 ${reportType === "Feedback Report" ? "opacity-50" : ""}`}>
                     <Checkbox
                       id="summary"
                       checked={includeSummary}
                       onCheckedChange={setIncludeSummary}
+                      disabled={reportType === "Feedback Report"}
                       className="mt-0.5"
                     />
                     <div className="flex-1">
                       <label
                         htmlFor="summary"
-                        className="text-sm font-medium leading-none cursor-pointer"
+                        className={`text-sm font-medium leading-none ${reportType === "Feedback Report" ? "cursor-not-allowed" : "cursor-pointer"}`}
                       >
                         Summary Overview
                       </label>
@@ -979,17 +980,18 @@ export default function Reports() {
                     </div>
                   </div>
 
-                  <div className="flex items-start space-x-3">
+                  <div className={`flex items-start space-x-3 ${reportType === "Feedback Report" ? "opacity-50" : ""}`}>
                     <Checkbox
                       id="details"
                       checked={includeDetails}
                       onCheckedChange={setIncludeDetails}
+                      disabled={reportType === "Feedback Report"}
                       className="mt-0.5"
                     />
                     <div className="flex-1">
                       <label
                         htmlFor="details"
-                        className="text-sm font-medium leading-none cursor-pointer"
+                        className={`text-sm font-medium leading-none ${reportType === "Feedback Report" ? "cursor-not-allowed" : "cursor-pointer"}`}
                       >
                         Detailed Transactions
                       </label>
