@@ -48,7 +48,6 @@ export default function Reports() {
   const [statistics, setStatistics] = useState({
     total_transactions: 0,
     target_percentage: 0,
-    avg_processing_time: '0 min',
     most_requested: { purpose: 'N/A', count: 0 },
     completion_rate: 0,
     avg_rating: 0,
@@ -73,7 +72,6 @@ export default function Reports() {
   // Pagination state for recent reports
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [clearingReports, setClearingReports] = useState(false);
   
   // Pagination state for feedback table
   const [feedbackCurrentPage, setFeedbackCurrentPage] = useState(1);
@@ -412,10 +410,6 @@ export default function Reports() {
                   <div className="bg-green-100 p-2 rounded-xl">
                     <ArrowRightLeft className="w-4 h-4 text-green-700" />
                   </div>
-
-                  <Badge className="bg-green-100 text-green-700">
-                    {statistics.target_percentage > 0 ? '+' : ''}{statistics.target_percentage.toFixed(1)}%
-                  </Badge>
                 </div>
 
                 <h2 className="text-3xl font-bold">{statistics.total_transactions.toLocaleString()}</h2>
@@ -429,10 +423,6 @@ export default function Reports() {
                     style={{ width: `${Math.min(statistics.target_percentage, 100)}%` }}
                   />
                 </div>
-
-                <p className="text-xs text-gray-400 mt-2">
-                  {statistics.target_percentage.toFixed(0)}% of monthly target
-                </p>
               </CardContent>
             </Card>
 
@@ -442,10 +432,6 @@ export default function Reports() {
                   <div className="bg-yellow-100 p-2 rounded-xl">
                     <Star className="w-4 h-4 text-yellow-600" />
                   </div>
-
-                  <Badge className="bg-blue-100 text-blue-600">
-                    Avg
-                  </Badge>
                 </div>
 
                 <h2 className="text-3xl font-bold">{(statistics.avg_rating || 0).toFixed(1)}/5.0</h2>
@@ -472,10 +458,6 @@ export default function Reports() {
                   <div className="bg-blue-100 p-2 rounded-xl">
                     <BadgeCheck className="w-4 h-4 text-blue-600" />
                   </div>
-
-                  <Badge className="bg-green-100 text-green-700">
-                    High
-                  </Badge>
                 </div>
 
                 <h2 className="text-xl font-bold">
@@ -502,10 +484,6 @@ export default function Reports() {
                   <div className="bg-purple-100 p-2 rounded-xl">
                     <CheckCircle2 className="w-4 h-4 text-purple-600" />
                   </div>
-
-                  <Badge className="bg-green-100 text-green-700">
-                    {statistics.completion_rate >= 90 ? 'Excellent' : 'Good'}
-                  </Badge>
                 </div>
 
                 <h2 className="text-3xl font-bold">{statistics.completion_rate}%</h2>
