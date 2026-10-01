@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,6 +12,7 @@ import {
 import { updateUser } from '../../api/userApi';
 import { toast } from "sonner";
 import AddressSelector from '@/components/common/AddressSelector';
+import { validateTextInput, autoCapitalize, validateEmail, formatStudentId } from '@/utils/validation';
 
 const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
   const [formData, setFormData] = useState({
@@ -29,15 +30,17 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
     if (client) {
       console.log("📝 Client data received:", client);
       setFormData({
         student_id: client.student_id || '',
-        fname: client.fname || '',
-        mname: client.mname || '',
-        lname: client.lname || '',
+        fname: autoCapitalize(client.fname || ''),
+        mname: autoCapitalize(client.mname || ''),
+        lname: autoCapitalize(client.lname || ''),
         email: client.email || '',
         barangay: client.barangay || '',
         municipality: client.municipality || '',
@@ -46,17 +49,100 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
         year_level: client.year_level || '',
         status: client.status || 'Active',
       });
-      setError(""); // Clear error when new client is selected
+      setError("");
+      setErrors({});
+      setTouched({});
     }
   }, [client]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    let processedValue = value;
+    if (["fname", "mname", "lname"].includes(name)) {
+      processedValue = autoCapitalize(value);
+    } else if (name === "student_id") {
+      processedValue = formatStudentId(value);
+    }
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: processedValue,
     }));
-    setError(""); // Clear error when user types
+    setError("");
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: null });
+    }
+  };
+
+  const handleBlur = (field) => {
+    setTouched({ ...touched, [field]: true });
+    validateField(field);
+  };
+
+  const validateField = (field) => {
+    let fieldError = null;
+
+    switch (field) {
+      case "fname":
+      case "lname":
+        const validation = validateTextInput(formData[field], {
+          minLength: 2,
+          maxLength: 50,
+          allowSpecialChars: false,
+          required: true,
+        });
+        if (!validation.isValid) {
+          fieldError = validation.error;
+        }
+        break;
+
+      case "mname":
+        if (formData[field]) {
+          const validation = validateTextInput(formData[field], {
+            minLength: 1,
+            maxLength: 50,
+            allowSpecialChars: false,
+            required: false,
+          });
+          if (!validation.isValid) {
+            fieldError = validation.error;
+          }
+        }
+        break;
+
+      case "email":
+        if (!formData.email) {
+          fieldError = "Email is required";
+        } else if (!validateEmail(formData.email)) {
+          fieldError = "Please enter a valid email address";
+        }
+        break;
+
+      case "student_id":
+        if (!formData.student_id) {
+          fieldError = "Student ID is required";
+        }
+        break;
+
+      case "course":
+        if (!formData.course) {
+          fieldError = "Course is required";
+        }
+        break;
+
+      case "year_level":
+        if (!formData.year_level) {
+          fieldError = "Year level is required";
+        }
+        break;
+    }
+
+    if (fieldError) {
+      setErrors({ ...errors, [field]: fieldError });
+    }
+
+    return !fieldError;
   };
 
   const handleSelectChange = (name, value) => {
@@ -70,29 +156,27 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!formData.student_id) {
-      setError("Student ID is required");
-      return;
-    }
-    if (!formData.fname) {
-      setError("First name is required");
-      return;
-    }
-    if (!formData.lname) {
-      setError("Last name is required");
-      return;
-    }
-    if (!formData.email) {
-      setError("Email is required");
-      return;
-    }
-    if (!formData.course) {
-      setError("Course is required");
-      return;
-    }
-    if (!formData.year_level) {
-      setError("Year is required");
+    // Validate all fields
+    const fieldsToValidate = ["student_id", "fname", "lname", "email", "course", "year_level"];
+    let isValid = true;
+
+    fieldsToValidate.forEach((field) => {
+      if (!validateField(field)) {
+        isValid = false;
+      }
+    });
+
+    setTouched({
+      student_id: true,
+      fname: true,
+      lname: true,
+      email: true,
+      course: true,
+      year_level: true,
+    });
+
+    if (!isValid) {
+      toast.error("Please fix all validation errors before submitting");
       return;
     }
 
@@ -167,10 +251,10 @@ const EditClientDialog = ({ isOpen, onClose, client, onUserUpdated }) => {
                 type="text"
                 name="student_id"
                 value={formData.student_id}
-                onChange={handleInputChange}
                 placeholder="Enter student ID"
-                className="w-full"
-                disabled={loading}
+                className="w-full bg-gray-100 cursor-not-allowed"
+                readOnly
+                disabled
               />
             </div>
 

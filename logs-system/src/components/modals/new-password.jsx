@@ -14,7 +14,10 @@ import {
   EyeOff,
   CheckCircle2,
   ArrowLeft,
+  XCircle,
 } from "lucide-react";
+
+import { validatePassword, getPasswordStrengthColor } from "@/utils/validation";
 
 export default function CreateNewPasswordDialog({
   open,
@@ -25,21 +28,15 @@ export default function CreateNewPasswordDialog({
 }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const hasLength = password.length >= 6;
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasSpecial = /[0-9!@#$%^&*(),.?":{}|<>]/.test(password);
-
-  const score = [hasLength, hasUppercase, hasSpecial].filter(Boolean).length;
-
-  const strength = useMemo(() => {
-    if (score === 0) return "Weak";
-    if (score === 1) return "Fair";
-    if (score === 2) return "Good";
-    return "Strong";
-  }, [score]);
+  // Use the enhanced password validation
+  const passwordValidation = useMemo(() => {
+    if (!password) return null;
+    return validatePassword(password);
+  }, [password]);
 
   const passwordsMatch =
     password.length > 0 &&
@@ -113,8 +110,8 @@ export default function CreateNewPasswordDialog({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3.5 text-gray-500 hover:text-gray-700"
                 disabled={loading}
+                className="absolute right-3 top-3.5 text-gray-500 hover:text-gray-700 disabled:opacity-50"
               >
                 {showPassword ? (
                   <EyeOff size={20} />
@@ -125,23 +122,23 @@ export default function CreateNewPasswordDialog({
             </div>
 
             {/* Strength */}
-            {password.length > 0 && (
+            {password.length > 0 && passwordValidation && (
               <div className="flex items-center gap-3 pt-2">
                 <div className="flex flex-1 gap-1.5">
-                  {[1, 2, 3].map((item) => (
+                  {[1, 2, 3, 4, 5].map((item) => (
                     <div
                       key={item}
                       className={`h-2 flex-1 rounded-full transition-colors ${
-                        score >= item
-                          ? "bg-green-700"
+                        passwordValidation.score >= item
+                          ? getPasswordStrengthColor(passwordValidation.strength).split(" ")[1]
                           : "bg-gray-200"
                       }`}
                     />
                   ))}
                 </div>
 
-                <span className="text-sm font-semibold text-green-700 min-w-[60px]">
-                  {strength}
+                <span className={`text-sm font-semibold min-w-[60px] ${getPasswordStrengthColor(passwordValidation.strength).split(" ")[0]}`}>
+                  {passwordValidation.strength}
                 </span>
               </div>
             )}
@@ -184,8 +181,8 @@ export default function CreateNewPasswordDialog({
                   onClick={() =>
                     setShowConfirm(!showConfirm)
                   }
-                  className="text-gray-500 hover:text-gray-700"
                   disabled={loading}
+                  className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
                 >
                   {showConfirm ? (
                     <EyeOff size={20} />
@@ -213,41 +210,48 @@ export default function CreateNewPasswordDialog({
             <div className="space-y-2.5 text-sm text-slate-600">
 
               <div className="flex items-center gap-2.5">
-                <CheckCircle2
-                  size={18}
-                  className={
-                    hasLength
-                      ? "text-green-700"
-                      : "text-gray-300"
-                  }
-                />
-                <span>At least 6 characters</span>
+                {passwordValidation?.rules.hasMinLength ? (
+                  <CheckCircle2 size={18} className="text-green-700" />
+                ) : (
+                  <XCircle size={18} className="text-gray-300" />
+                )}
+                <span>At least 8 characters</span>
               </div>
 
               <div className="flex items-center gap-2.5">
-                <CheckCircle2
-                  size={18}
-                  className={
-                    hasUppercase
-                      ? "text-green-700"
-                      : "text-gray-300"
-                  }
-                />
+                {passwordValidation?.rules.hasUppercase ? (
+                  <CheckCircle2 size={18} className="text-green-700" />
+                ) : (
+                  <XCircle size={18} className="text-gray-300" />
+                )}
                 <span>One uppercase letter</span>
               </div>
 
               <div className="flex items-center gap-2.5">
-                <CheckCircle2
-                  size={18}
-                  className={
-                    hasSpecial
-                      ? "text-green-700"
-                      : "text-gray-300"
-                  }
-                />
-                <span>
-                  One number or special character
-                </span>
+                {passwordValidation?.rules.hasLowercase ? (
+                  <CheckCircle2 size={18} className="text-green-700" />
+                ) : (
+                  <XCircle size={18} className="text-gray-300" />
+                )}
+                <span>One lowercase letter</span>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                {passwordValidation?.rules.hasNumber ? (
+                  <CheckCircle2 size={18} className="text-green-700" />
+                ) : (
+                  <XCircle size={18} className="text-gray-300" />
+                )}
+                <span>One number</span>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                {passwordValidation?.rules.hasSpecialChar ? (
+                  <CheckCircle2 size={18} className="text-green-700" />
+                ) : (
+                  <XCircle size={18} className="text-gray-300" />
+                )}
+                <span>One special character</span>
               </div>
 
             </div>
@@ -256,7 +260,7 @@ export default function CreateNewPasswordDialog({
           {/* Button */}
           <Button
             onClick={handleResetPassword}
-            disabled={loading || !passwordsMatch || !hasLength}
+            disabled={loading || !passwordsMatch || !passwordValidation?.isValid}
             className="h-14 w-full rounded-xl bg-green-700 text-base font-semibold hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (

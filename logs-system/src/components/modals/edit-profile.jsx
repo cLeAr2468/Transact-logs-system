@@ -22,9 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2, XCircle } from "lucide-react";
 import { updateProfile } from "@/api/profileApi";
 import { toast } from "sonner";
+import { validateTextInput, autoCapitalize } from "@/utils/validation";
 
 export default function EditProfileDialog({
   user,
@@ -34,39 +35,128 @@ export default function EditProfileDialog({
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(user);
   const [loading, setLoading] = useState(false);
-
-  // Determine display ID
-  const displayId = user?.admin_id || user?.staff_id || 'N/A';
-  const isAdmin = user?.role === 'admin' || user?.admin_id;
+  const [error, setError] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
     setForm(user);
   }, [user]);
 
+  const initials = `${form.firstname?.charAt(0) ?? ""}${
+    form.lastname?.charAt(0) ?? ""
+  }`.toUpperCase();
+
+  // Get the user ID (can be staff_id for staff or admin_id for admin)
+  const userId = form.staff_id || form.admin_id || "";
+
   function handleChange(e) {
     const { name, value } = e.target;
 
+    let processedValue = value;
+
+    // Apply auto-capitalization to name fields
+    if (["firstname", "middlename", "lastname"].includes(name)) {
+      processedValue = autoCapitalize(value);
+    }
+
     setForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: processedValue,
     }));
+
+    // Clear error when user types
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: null });
+    }
+  }
+
+  function handleBlur(field) {
+    setTouched({ ...touched, [field]: true });
+    validateField(field);
+  }
+
+  function validateField(field) {
+    let fieldError = null;
+
+    switch (field) {
+      case "firstname":
+      case "lastname":
+        const validation = validateTextInput(form[field], {
+          minLength: 2,
+          maxLength: 50,
+          allowSpecialChars: false,
+          required: true,
+        });
+        if (!validation.isValid) {
+          fieldError = validation.error;
+        }
+        break;
+
+      case "middlename":
+        if (form[field]) {
+          const validation = validateTextInput(form[field], {
+            minLength: 1,
+            maxLength: 50,
+            allowSpecialChars: false,
+            required: false,
+          });
+          if (!validation.isValid) {
+            fieldError = validation.error;
+          }
+        }
+        break;
+    }
+
+    if (fieldError) {
+      setErrors({ ...errors, [field]: fieldError });
+    }
+
+    return !fieldError;
   }
 
   async function handleSave() {
+    // Validate all name fields
+    const fieldsToValidate = ["firstname", "lastname"];
+    let isValid = true;
+
+    fieldsToValidate.forEach((field) => {
+      if (!validateField(field)) {
+        isValid = false;
+      }
+    });
+
+    // Mark all fields as touched
+    setTouched({
+      firstname: true,
+      lastname: true,
+      middlename: true,
+    });
+
+    if (!isValid) {
+      toast.error("Please fix all validation errors before saving");
+      return;
+    }
+
     try {
       setLoading(true);
+      setError(null);
 
+      // Call the API to update profile
       const response = await updateProfile(form);
 
+      // Update local state with the response
       if (onSave) {
-        onSave(response.user || response.staff);
+        onSave(response.user);
       }
 
       toast.success("Profile updated successfully!");
       setOpen(false);
     } catch (error) {
       console.error("Failed to update profile:", error);
-      toast.error(error.message || "Failed to update profile");
+      const errorMessage = error.message || "Failed to update profile";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -81,7 +171,7 @@ export default function EditProfileDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
 
@@ -89,16 +179,16 @@ export default function EditProfileDialog({
             Update your account information.
           </DialogDescription>
         </DialogHeader>
+        {/* Form */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
-            <Label>ID</Label>
+            <Label>User ID</Label>
 
             <Input
               name="user_id"
-              value={displayId}
+              value={userId}
               readOnly
-              disabled
               className="bg-gray-100 cursor-not-allowed"
             />
           </div>
@@ -109,19 +199,29 @@ export default function EditProfileDialog({
             <Input
               type="email"
               name="email"
-              value={form.email || ''}
+              value={form.email}
               onChange={handleChange}
+              readOnly
+              className="bg-gray-100 cursor-not-allowed"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>First Name</Label>
+            <Label>First Name <span className="text-red-500">*</span></Label>
 
             <Input
               name="firstname"
-              value={form.firstname || ''}
+              value={form.firstname}
               onChange={handleChange}
+              onBlur={() => handleBlur("firstname")}
+              className={touched.firstname && errors.firstname ? "border-red-500" : ""}
             />
+            {touched.firstname && errors.firstname && (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <XCircle size={12} />
+                {errors.firstname}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -129,50 +229,48 @@ export default function EditProfileDialog({
 
             <Input
               name="middlename"
-              value={form.middlename || ''}
+              placeholder="Middle Name (Optional)"
+              value={form.middlename || ""}
               onChange={handleChange}
-              placeholder="Enter middle name (Optional)"
+              onBlur={() => handleBlur("middlename")}
+              className={touched.middlename && errors.middlename ? "border-red-500" : ""}
             />
+            {touched.middlename && errors.middlename && (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <XCircle size={12} />
+                {errors.middlename}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label>Last Name</Label>
+            <Label>Last Name <span className="text-red-500">*</span></Label>
 
             <Input
               name="lastname"
-              value={form.lastname || ''}
+              value={form.lastname}
               onChange={handleChange}
+              onBlur={() => handleBlur("lastname")}
+              className={touched.lastname && errors.lastname ? "border-red-500" : ""}
             />
+            {touched.lastname && errors.lastname && (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <XCircle size={12} />
+                {errors.lastname}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label>Status</Label>
+            <Label>Role</Label>
 
-            <Select
-              value={form.status || 'Active'}
-              onValueChange={(value) =>
-                setForm({
-                  ...form,
-                  status: value,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Status" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="Active">
-                  Active
-                </SelectItem>
-
-                <SelectItem value="Inactive">
-                  Inactive
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <Input
+              name="role"
+              value={form.role || ""}
+              readOnly
+              className="bg-gray-100 cursor-not-allowed"
+            />
           </div>
-
         </div>
 
         <DialogFooter className="mt-8">

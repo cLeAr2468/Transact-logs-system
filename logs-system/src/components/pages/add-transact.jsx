@@ -231,7 +231,10 @@ export default function TransactionForm() {
   };
 
   const handleStudentIdChange = (e) => {
-    setStudentId(e.target.value);
+    const value = e.target.value;
+    // Apply uppercase formatting as user types
+    const formatted = value.toUpperCase().replace(/[^0-9A-Z-]/g, "");
+    setStudentId(formatted);
     setIsUserValidated(false);
     setUserData(null);
   };

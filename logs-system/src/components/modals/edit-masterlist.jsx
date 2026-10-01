@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { updateMasterlistEntry } from '../../api/masterlistApi';
 import { toast } from "sonner";
+import { validateTextInput, autoCapitalize, validateEmail, formatStudentId } from '@/utils/validation';
 
 const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated }) => {
   const [formData, setFormData] = useState({
@@ -25,31 +26,114 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
     if (masterlist) {
       console.log("📝 Masterlist data received:", masterlist);
       setFormData({
         student_id: masterlist.student_id || '',
-        fname: masterlist.fname || '',
-        mname: masterlist.mname || '',
-        lname: masterlist.lname || '',
+        fname: autoCapitalize(masterlist.fname || ''),
+        mname: autoCapitalize(masterlist.mname || ''),
+        lname: autoCapitalize(masterlist.lname || ''),
         email: masterlist.email || '',
         course: masterlist.course || '',
         year_level: masterlist.year_level || '',
         status: masterlist.status || 'Active',
       });
-      setError(""); // Clear error when new masterlist is selected
+      setError("");
+      setErrors({});
+      setTouched({});
     }
   }, [masterlist]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    let processedValue = value;
+    if (["fname", "mname", "lname"].includes(name)) {
+      processedValue = autoCapitalize(value);
+    }
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: processedValue,
     }));
-    setError(""); // Clear error when user types
+    setError("");
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: null });
+    }
+  };
+
+  const handleBlur = (field) => {
+    setTouched({ ...touched, [field]: true });
+    validateField(field);
+  };
+
+  const validateField = (field) => {
+    let fieldError = null;
+
+    switch (field) {
+      case "fname":
+      case "lname":
+        const validation = validateTextInput(formData[field], {
+          minLength: 2,
+          maxLength: 50,
+          allowSpecialChars: false,
+          required: true,
+        });
+        if (!validation.isValid) {
+          fieldError = validation.error;
+        }
+        break;
+
+      case "mname":
+        if (formData[field]) {
+          const validation = validateTextInput(formData[field], {
+            minLength: 1,
+            maxLength: 50,
+            allowSpecialChars: false,
+            required: false,
+          });
+          if (!validation.isValid) {
+            fieldError = validation.error;
+          }
+        }
+        break;
+
+      case "email":
+        if (!formData.email) {
+          fieldError = "Email is required";
+        } else if (!validateEmail(formData.email)) {
+          fieldError = "Please enter a valid email address";
+        }
+        break;
+
+      case "student_id":
+        if (!formData.student_id) {
+          fieldError = "Student ID is required";
+        }
+        break;
+
+      case "course":
+        if (!formData.course) {
+          fieldError = "Course is required";
+        }
+        break;
+
+      case "year_level":
+        if (!formData.year_level) {
+          fieldError = "Year level is required";
+        }
+        break;
+    }
+
+    if (fieldError) {
+      setErrors({ ...errors, [field]: fieldError });
+    }
+
+    return !fieldError;
   };
 
   const handleSelectChange = (name, value) => {
@@ -63,29 +147,27 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!formData.student_id) {
-      setError("Student ID is required");
-      return;
-    }
-    if (!formData.fname) {
-      setError("First name is required");
-      return;
-    }
-    if (!formData.lname) {
-      setError("Last name is required");
-      return;
-    }
-    if (!formData.email) {
-      setError("Email is required");
-      return;
-    }
-    if (!formData.course) {
-      setError("Course is required");
-      return;
-    }
-    if (!formData.year_level) {
-      setError("Year level is required");
+    // Validate all fields
+    const fieldsToValidate = ["student_id", "fname", "lname", "email", "course", "year_level"];
+    let isValid = true;
+
+    fieldsToValidate.forEach((field) => {
+      if (!validateField(field)) {
+        isValid = false;
+      }
+    });
+
+    setTouched({
+      student_id: true,
+      fname: true,
+      lname: true,
+      email: true,
+      course: true,
+      year_level: true,
+    });
+
+    if (!isValid) {
+      toast.error("Please fix all validation errors before submitting");
       return;
     }
 
@@ -160,10 +242,10 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
                 type="text"
                 name="student_id"
                 value={formData.student_id}
-                onChange={handleInputChange}
                 placeholder="Enter student ID"
-                className="w-full"
-                disabled={loading}
+                className="w-full bg-gray-100 cursor-not-allowed"
+                readOnly
+                disabled
               />
             </div>
 
@@ -177,10 +259,14 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
                 name="fname"
                 value={formData.fname}
                 onChange={handleInputChange}
+                onBlur={() => handleBlur("fname")}
                 placeholder="Enter first name"
-                className="w-full"
+                className={`w-full ${touched.fname && errors.fname ? "border-red-500" : ""}`}
                 disabled={loading}
               />
+              {touched.fname && errors.fname && (
+                <p className="text-xs text-red-500 mt-1">{errors.fname}</p>
+              )}
             </div>
 
             {/* Middle Name */}
@@ -193,10 +279,14 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
                 name="mname"
                 value={formData.mname}
                 onChange={handleInputChange}
+                onBlur={() => handleBlur("mname")}
                 placeholder="Enter middle name"
-                className="w-full"
+                className={`w-full ${touched.mname && errors.mname ? "border-red-500" : ""}`}
                 disabled={loading}
               />
+              {touched.mname && errors.mname && (
+                <p className="text-xs text-red-500 mt-1">{errors.mname}</p>
+              )}
             </div>
 
             {/* Last Name */}
@@ -209,10 +299,14 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
                 name="lname"
                 value={formData.lname}
                 onChange={handleInputChange}
+                onBlur={() => handleBlur("lname")}
                 placeholder="Enter last name"
-                className="w-full"
+                className={`w-full ${touched.lname && errors.lname ? "border-red-500" : ""}`}
                 disabled={loading}
               />
+              {touched.lname && errors.lname && (
+                <p className="text-xs text-red-500 mt-1">{errors.lname}</p>
+              )}
             </div>
 
             {/* Email */}
@@ -225,10 +319,14 @@ const EditMasterlistDialog = ({ isOpen, onClose, masterlist, onMasterlistUpdated
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
+                onBlur={() => handleBlur("email")}
                 placeholder="Enter email address"
-                className="w-full"
+                className={`w-full ${touched.email && errors.email ? "border-red-500" : ""}`}
                 disabled={loading}
               />
+              {touched.email && errors.email && (
+                <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+              )}
             </div>
 
             {/* Course */}

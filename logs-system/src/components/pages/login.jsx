@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Image1 from "@/assets/login.png";
 import Image2 from "@/assets/nwssu 1.png";
 import { useState, useEffect } from "react";
-import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, XCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ForgotPass from "@/components/modals/forgot-pass";
 import VerifyOtpDialog from "@/components/modals/otp-dialog";
@@ -14,6 +14,7 @@ import { adminLogin, forgotPassword, verifyOtp, resendOtp, resetPassword } from 
 import { toast } from "sonner";
 import { setSession, isSessionActive } from "@/utils/session";
 import { showErrorToast, getErrorMessage, isRateLimitError } from "@/utils/errorHandler";
+import { validateEmail } from "@/utils/validation";
 
 function Login() {
   const navigate = useNavigate();
@@ -52,8 +53,19 @@ function Login() {
       setError("Please enter your email");
       return;
     }
+    
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+    
     if (!password) {
       setError("Please enter your password");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
       return;
     }
 

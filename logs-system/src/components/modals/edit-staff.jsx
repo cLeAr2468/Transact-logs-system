@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { updateStaff } from '../../api/staffApi';
 import { toast } from "sonner";
+import { validateTextInput, autoCapitalize, validateEmail, formatStaffId } from '@/utils/validation';
 
 export default function EditStaffDialog({ isOpen, onClose, staff, onStaffUpdated }) {
   const [formData, setFormData] = useState({
@@ -23,28 +24,101 @@ export default function EditStaffDialog({ isOpen, onClose, staff, onStaffUpdated
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
     if (staff) {
       setFormData({
         staff_id: staff.staff_id || '',
-        fname: staff.fname || '',
-        mname: staff.mname || '',
-        lname: staff.lname || '',
+        fname: autoCapitalize(staff.fname || ''),
+        mname: autoCapitalize(staff.mname || ''),
+        lname: autoCapitalize(staff.lname || ''),
         email: staff.email || '',
         status: staff.status || 'Active',
       });
-      setError(""); // Clear error when new staff is selected
+      setError(""); 
+      setErrors({});
+      setTouched({});
     }
   }, [staff]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    let processedValue = value;
+    if (["fname", "mname", "lname"].includes(name)) {
+      processedValue = autoCapitalize(value);
+    } else if (name === "staff_id") {
+      processedValue = formatStaffId(value);
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
-    setError(""); // Clear error when user types
+    setError("");
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: null });
+    }
+  };
+
+  const handleBlur = (field) => {
+    setTouched({ ...touched, [field]: true });
+    validateField(field);
+  };
+
+  const validateField = (field) => {
+    let fieldError = null;
+
+    switch (field) {
+      case "fname":
+      case "lname":
+        const validation = validateTextInput(formData[field], {
+          minLength: 2,
+          maxLength: 50,
+          allowSpecialChars: false,
+          required: true,
+        });
+        if (!validation.isValid) {
+          fieldError = validation.error;
+        }
+        break;
+
+      case "mname":
+        if (formData[field]) {
+          const validation = validateTextInput(formData[field], {
+            minLength: 1,
+            maxLength: 50,
+            allowSpecialChars: false,
+            required: false,
+          });
+          if (!validation.isValid) {
+            fieldError = validation.error;
+          }
+        }
+        break;
+
+      case "email":
+        if (!formData.email) {
+          fieldError = "Email is required";
+        } else if (!validateEmail(formData.email)) {
+          fieldError = "Please enter a valid email address";
+        }
+        break;
+
+      case "staff_id":
+        if (!formData.staff_id) {
+          fieldError = "Staff ID is required";
+        }
+        break;
+    }
+
+    if (fieldError) {
+      setErrors({ ...errors, [field]: fieldError });
+    }
+
+    return !fieldError;
   };
 
   const handleSelectChange = (name, value) => {
@@ -58,21 +132,25 @@ export default function EditStaffDialog({ isOpen, onClose, staff, onStaffUpdated
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate required fields
-    if (!formData.staff_id) {
-      setError("Staff ID is required");
-      return;
-    }
-    if (!formData.fname) {
-      setError("First name is required");
-      return;
-    }
-    if (!formData.lname) {
-      setError("Last name is required");
-      return;
-    }
-    if (!formData.email) {
-      setError("Email is required");
+    // Validate all fields
+    const fieldsToValidate = ["staff_id", "fname", "lname", "email"];
+    let isValid = true;
+
+    fieldsToValidate.forEach((field) => {
+      if (!validateField(field)) {
+        isValid = false;
+      }
+    });
+
+    setTouched({
+      staff_id: true,
+      fname: true,
+      lname: true,
+      email: true,
+    });
+
+    if (!isValid) {
+      toast.error("Please fix all validation errors before submitting");
       return;
     }
 
@@ -153,8 +231,10 @@ export default function EditStaffDialog({ isOpen, onClose, staff, onStaffUpdated
                 type="text"
                 name="staff_id"
                 value={formData.staff_id}
-                onChange={handleInputChange}
                 placeholder="Enter staff ID"
+                className="bg-gray-100 cursor-not-allowed"
+                readOnly
+                disabled
               />
             </div>
             {/* First Name */}

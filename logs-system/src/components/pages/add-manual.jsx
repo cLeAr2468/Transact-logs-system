@@ -28,10 +28,17 @@ import {
   GraduationCap,
   School,
   IdCard,
+  XCircle,
 } from "lucide-react";
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
 import { toast } from "sonner";
+import { 
+  validateEmail, 
+  validateTextInput,
+  autoCapitalize,
+  formatStudentId
+} from "@/utils/validation";
 
 function AddManual() {
   const [form, setForm] = useState({
@@ -45,16 +52,127 @@ function AddManual() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   const handleChange = (e) => {
+    const { id, value } = e.target;
+    
+    let processedValue = value;
+    
+    // Apply formatting based on field type
+    if (id === "student_id") {
+      processedValue = formatStudentId(value);
+    } else if (["fname", "mname", "lname"].includes(id)) {
+      processedValue = autoCapitalize(value);
+    }
+    
     setForm({
       ...form,
-      [e.target.id]: e.target.value,
+      [id]: processedValue,
     });
+    
+    // Clear error when user types
+    if (errors[id]) {
+      setErrors({ ...errors, [id]: null });
+    }
+  };
+
+  const handleBlur = (field) => {
+    setTouched({ ...touched, [field]: true });
+    validateField(field);
+  };
+
+  const validateField = (field) => {
+    let error = null;
+
+    switch (field) {
+      case "student_id":
+        if (!form.student_id) {
+          error = "Student ID is required";
+        }
+        break;
+      
+      case "fname":
+      case "lname":
+        const validation = validateTextInput(form[field], {
+          minLength: 2,
+          maxLength: 50,
+          allowSpecialChars: false,
+          required: true,
+        });
+        if (!validation.isValid) {
+          error = validation.error;
+        }
+        break;
+
+      case "mname":
+        if (form[field]) {
+          const validation = validateTextInput(form[field], {
+            minLength: 1,
+            maxLength: 50,
+            allowSpecialChars: false,
+            required: false,
+          });
+          if (!validation.isValid) {
+            error = validation.error;
+          }
+        }
+        break;
+
+      case "email":
+        if (!form.email) {
+          error = "Email is required";
+        } else if (!validateEmail(form.email)) {
+          error = "Please enter a valid email address";
+        }
+        break;
+
+      case "course":
+      case "year_level":
+        if (!form[field]) {
+          error = `${field === "year_level" ? "Year level" : "Course"} is required`;
+        }
+        break;
+    }
+
+    if (error) {
+      setErrors({ ...errors, [field]: error });
+    }
+
+    return !error;
+  };
+
+  const validateAllFields = () => {
+    const fields = ["student_id", "fname", "lname", "email", "course", "year_level"];
+    let isValid = true;
+
+    fields.forEach((field) => {
+      if (!validateField(field)) {
+        isValid = false;
+      }
+    });
+
+    setTouched({
+      student_id: true,
+      fname: true,
+      lname: true,
+      email: true,
+      course: true,
+      year_level: true,
+    });
+
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate all fields
+    if (!validateAllFields()) {
+      toast.error("Please fix all validation errors before submitting");
+      return;
+    }
 
     setLoading(true);
 
