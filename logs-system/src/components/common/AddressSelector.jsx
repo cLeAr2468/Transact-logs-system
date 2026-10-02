@@ -101,6 +101,8 @@ export default function AddressSelector({
               setSelectedMunicipalityCode(municipalityObj.code);
             } else {
               // Municipality not in list, clear it
+              setSelectedMunicipalityCode(null);
+              setBarangays([]);
               onMunicipalityChange("");
               onBarangayChange("");
             }
@@ -112,7 +114,9 @@ export default function AddressSelector({
       }
     } else {
       setMunicipalities([]);
+      setBarangays([]);
       setSelectedProvinceCode(null);
+      setSelectedMunicipalityCode(null);
       if (!province) {
         onMunicipalityChange("");
         onBarangayChange("");
@@ -122,47 +126,42 @@ export default function AddressSelector({
 
   // Load barangays when municipality changes (sorted alphabetically)
   useEffect(() => {
-    if (municipality && selectedMunicipalityCode) {
+    if (municipality && municipalities.length > 0) {
       try {
-        const brgyList = getBarangays(selectedMunicipalityCode);
-        // Convert to our format with clean display names
-        const formattedBarangays = brgyList.map(brgy => ({
-          code: brgy.code,
-          value: cleanDisplayText(brgy.name),
-          label: cleanDisplayText(brgy.name)
-        }));
-        // Sort alphabetically by label
-        const sortedBarangays = formattedBarangays.sort((a, b) => 
-          a.label.localeCompare(b.label)
-        );
-        setBarangays(sortedBarangays);
-        
-        // Clear barangay if current selection is not in the new list
-        if (barangay && !sortedBarangays.find(b => b.value === barangay)) {
-          onBarangayChange("");
+        // Find municipality code by name
+        const municipalityObj = municipalities.find(m => m.value === municipality);
+        if (municipalityObj) {
+          setSelectedMunicipalityCode(municipalityObj.code);
+          const brgyList = getBarangays(municipalityObj.code);
+          // Convert to our format with clean display names
+          const formattedBarangays = brgyList.map(brgy => ({
+            code: brgy.code,
+            value: cleanDisplayText(brgy.name),
+            label: cleanDisplayText(brgy.name)
+          }));
+          // Sort alphabetically by label
+          const sortedBarangays = formattedBarangays.sort((a, b) => 
+            a.label.localeCompare(b.label)
+          );
+          setBarangays(sortedBarangays);
+          
+          // Clear barangay if current selection is not in the new list
+          if (barangay && !sortedBarangays.find(b => b.value === barangay)) {
+            onBarangayChange("");
+          }
         }
       } catch (error) {
         console.error("Error loading barangays:", error);
         setBarangays([]);
       }
-    } else if (municipality && municipalities.length > 0) {
-      // If municipalityCode not set yet, try to find it
-      try {
-        const municipalityObj = municipalities.find(m => m.value === municipality);
-        if (municipalityObj) {
-          setSelectedMunicipalityCode(municipalityObj.code);
-        }
-      } catch (error) {
-        console.error("Error finding municipality code:", error);
-      }
     } else {
       setBarangays([]);
+      setSelectedMunicipalityCode(null);
       if (!municipality) {
-        setSelectedMunicipalityCode(null);
         onBarangayChange("");
       }
     }
-  }, [municipality, selectedMunicipalityCode, municipalities]);
+  }, [municipality, municipalities]);
 
   const containerClass = layout === "grid" 
     ? "grid grid-cols-1 md:grid-cols-2 gap-4" 
