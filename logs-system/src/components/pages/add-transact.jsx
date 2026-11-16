@@ -16,6 +16,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
 import { getAllPurposes } from '../../api/purposeApi';
 import { toast } from 'sonner';
+import api from '@/api';
 
 export default function TransactionForm() {
   const navigate = useNavigate();
@@ -31,11 +32,14 @@ export default function TransactionForm() {
   
   const [selectedTime, setSelectedTime] = useState('');
   const [scheduleDate, setScheduleDate] = useState('');
-  const [purpose, setPurpose] = useState('');
+  const [purposeId, setPurposeId] = useState('');  // Pure Relationship: stores purpose ID
   const [availableSlots, setAvailableSlots] = useState({ morning: [], afternoon: [] });
   const [fullSlots, setFullSlots] = useState([]);
   const [slotDetails, setSlotDetails] = useState({});
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [serverTime, setServerTime] = useState(null);
+  const [isMorningPast, setIsMorningPast] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState('morning');
 
   // Fetch purposes on component mount
   useEffect(() => {
@@ -71,58 +75,68 @@ export default function TransactionForm() {
   const fetchAvailableSlots = async () => {
     setLoadingSlots(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      
       // Include user_id if available (from validated student)
-      let url = `${import.meta.env.VITE_API_URL}/appointments/available-slots?date=${scheduleDate}`;
+      let url = `/appointments/available-slots?date=${scheduleDate}`;
       if (userData?.id) {
         url += `&user_id=${userData.id}`;
       }
       
-      console.log('🔍 Fetching slots for date:', scheduleDate);
-      console.log('🔍 API URL:', url);
+      console.log('Fetching slots for date:', scheduleDate);
+      console.log('URL:', url);
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const response = await api.get(url);
+      const data = response.data;
+      
+      console.log('Slot data received:', data);
+      console.log('Server time:', data.server_time);
+      
+      // Store server time and check if morning is past
+      if (data.server_time) {
+        setServerTime(data.server_time);
+        const serverDate = new Date(data.server_time);
+        const serverHour = serverDate.getHours();
+        
+        // Check if selected date is today AND current time is >= 12:00 PM
+        const selectedDate = new Date(scheduleDate + 'T00:00:00');
+        const todayDate = new Date(data.server_time);
+        todayDate.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+        
+        const isToday = selectedDate.getTime() === todayDate.getTime();
+        const isPastNoon = serverHour >= 12;
+        
+        setIsMorningPast(isToday && isPastNoon);
+        
+        // If morning is past and morning is selected, switch to afternoon
+        if (isToday && isPastNoon && selectedPeriod === 'morning') {
+          setSelectedPeriod('afternoon');
+          toast.info('Morning time slots are no longer available for today');
         }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📊 Slot data received:', data);
-        console.log('🔴 Full slots:', data.full_slots);
-        console.log('✅ Available slots:', data.available_slots);
-        console.log('📈 Slot details:', data.slot_details);
+      }
         
-        // Check if slot_details exists and has data
-        if (!data.slot_details || Object.keys(data.slot_details).length === 0) {
-          console.warn('⚠️ No slot_details received from backend!');
-        }
+      setAvailableSlots(data.available_slots || { morning: [], afternoon: [] });
+      setFullSlots(data.full_slots || []);
+      setSlotDetails(data.slot_details || {});
         
-        setAvailableSlots(data.available_slots || { morning: [], afternoon: [] });
-        setFullSlots(data.full_slots || []);
-        setSlotDetails(data.slot_details || {});
-        
-        console.log('💾 State updated:', {
-          availableSlots: data.available_slots,
-          fullSlots: data.full_slots,
-          slotDetails: data.slot_details
-        });
-        
-        if (selectedTime && data.full_slots?.includes(selectedTime)) {
-          console.log('⚠️ Selected time is now full, clearing selection');
-          setSelectedTime('');
-        }
-      } else {
-        console.error('❌ Failed to fetch slots:', response.status);
-        const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Error data:', errorData);
-        toast.error('Failed to fetch available time slots');
+      if (selectedTime && data.full_slots?.includes(selectedTime)) {
+        console.log('Selected time is now full, clearing selection');
+        setSelectedTime('');
       }
     } catch (error) {
-      console.error('💥 Error fetching available slots:', error);
-      toast.error('Failed to load available time slots');
+      console.error('Error fetching available slots:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please login again.');
+      } else {
+        toast.error('Failed to load available time slots');
+      }
+      
+      // Set empty slots on error
+      setAvailableSlots({ morning: [], afternoon: [] });
+      setFullSlots([]);
+      setSlotDetails({});
     } finally {
       setLoadingSlots(false);
     }
@@ -187,32 +201,13 @@ export default function TransactionForm() {
 
     setIsValidating(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      
-      if (!token) {
-        toast.error('You are not logged in. Please login first.');
-        navigate('/login');
-        return;
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/transactions/validate-student`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ student_id: studentId })
+      const response = await api.post('/transactions/validate-student', {
+        student_id: studentId
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (response.status === 401) {
-        toast.error('Session expired. Please login again.');
-        navigate('/login');
-        return;
-      }
-
-      if (response.ok && data.found) {
+      if (data.found) {
         setUserData(data.user);
         setIsUserValidated(true);
         toast.success('Student found! Information loaded.');
@@ -222,9 +217,14 @@ export default function TransactionForm() {
         setIsUserValidated(false);
       }
     } catch (error) {
-      console.error('Validation error:', error);
-      toast.error('Failed to validate Student ID. Please try again.');
-      setIsUserValidated(false);
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please login again.');
+        navigate('/login');
+      } else {
+        console.error('Validation error:', error);
+        toast.error('Failed to validate Student ID. Please try again.');
+        setIsUserValidated(false);
+      }
     } finally {
       setIsValidating(false);
     }
@@ -248,16 +248,16 @@ export default function TransactionForm() {
     }
 
     if (!scheduleDate) {
-      toast.error('Please select a schedule date');
+      toast.error('Please select an appointment date');
       return;
     }
 
-    if (!purpose) {
+    if (!purposeId) {
       toast.error('Please select a purpose for appointment');
       return;
     }
 
-    if (!userData.barangay || !userData.municipality || !userData.province) {
+    if (!userData.region || !userData.barangay || !userData.municipality || !userData.province) {
       toast.error('Student address information is incomplete. Please update student profile first.');
       return;
     }
@@ -270,41 +270,22 @@ export default function TransactionForm() {
     setIsSubmitting(true);
     
     try {
-      const token = localStorage.getItem('admin_token');
-      
-      if (!token) {
-        toast.error('You are not logged in. Please login first.');
-        navigate('/login');
-        return;
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/transactions/create-by-admin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          student_id: studentId,
-          purpose: purpose,
-          brgy: userData.barangay,
-          municipality: userData.municipality,
-          province: userData.province,
-          schedule_date: scheduleDate,
-          time_slot: selectedTime
-        })
+      // Pure Relationship: send purpose_id instead of purpose string
+      // Address info is no longer sent - backend will get it from user relationship
+      const response = await api.post('/transactions/create-by-admin', {
+        student_id: studentId,
+        purpose_id: parseInt(purposeId),  // Pure Relationship: FK to purposes table
+        schedule_date: scheduleDate,
+        time_slot: selectedTime
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(data?.message || 'Transaction created successfully!');
+      toast.success(response.data?.message || 'Transaction created successfully!');
         
         // Reset form
         setStudentId('');
         setUserData(null);
         setIsUserValidated(false);
-        setPurpose('');
+        setPurposeId('');
         setScheduleDate('');
         setSelectedTime('');
         setAvailableSlots({ morning: [], afternoon: [] });
@@ -315,25 +296,19 @@ export default function TransactionForm() {
         setTimeout(() => {
           navigate('/transact');
         }, 1500);
-        
-      } else {
-        if (response.status === 401) {
-          toast.error('Session expired. Please login again.');
-          localStorage.removeItem('admin_token');
-          navigate('/login');
-        } else if (response.status === 409) {
-          toast.error(data?.message || 'Time slot is no longer available. Please choose another slot.');
-          if (scheduleDate) {
-            fetchAvailableSlots();
-          }
-        } else {
-          toast.error(data?.message || 'Failed to create transaction');
-        }
-      }
-      
     } catch (error) {
-      console.error('Submit error:', error);
-      toast.error('Failed to create transaction. Please try again.');
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please login again.');
+        navigate('/login');
+      } else if (error.response?.status === 409) {
+        toast.error(error.response?.data?.message || 'Time slot is no longer available. Please choose another slot.');
+        if (scheduleDate) {
+          fetchAvailableSlots();
+        }
+      } else {
+        console.error('Submit error:', error);
+        toast.error(error.response?.data?.message || 'Failed to create transaction. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -341,7 +316,7 @@ export default function TransactionForm() {
 
   // Handle cancel
   const handleCancel = () => {
-    if (studentId || purpose || scheduleDate || selectedTime) {
+    if (studentId || purposeId || scheduleDate || selectedTime) {
       toast.warning(
         <div>
           <p className="font-semibold">Cancel Transaction?</p>
@@ -451,7 +426,7 @@ export default function TransactionForm() {
                     <div>
                       <label className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                         <Calendar size={14} />
-                        Schedule Date
+                        Appointment Date
                       </label>
                       <style>{`
                         /* Hide weekend dates in calendar picker */
@@ -492,12 +467,14 @@ export default function TransactionForm() {
                         Purpose for Appointment
                       </Label>
                       <Select 
-                        value={purpose} 
-                        onValueChange={setPurpose}
+                        value={purposeId} 
+                        onValueChange={setPurposeId}
                         disabled={!isUserValidated}
                       >
                         <SelectTrigger className="h-10 rounded-lg border-2 text-sm sm:h-12 sm:rounded-xl sm:text-base lg:h-14 lg:text-md">
-                          <SelectValue placeholder="Select purpose" />
+                          <SelectValue placeholder="Select purpose">
+                            {purposeId ? purposes.find(p => p.id.toString() === purposeId)?.name : "Select purpose"}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="w-full">
                           {purposes.length === 0 ? (
@@ -506,7 +483,7 @@ export default function TransactionForm() {
                             </SelectItem>
                           ) : (
                             purposes.map((purposeItem) => (
-                              <SelectItem key={purposeItem.id} value={purposeItem.name}>
+                              <SelectItem key={purposeItem.id} value={purposeItem.id.toString()}>
                                 {purposeItem.name}
                               </SelectItem>
                             ))
@@ -568,64 +545,66 @@ export default function TransactionForm() {
                   )}
 
                   {/* MORNING TIME */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-medium">Morning</h3>
-                      {loadingSlots && (
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          Loading slots...
-                        </span>
-                      )}
-                    </div>
+                  {!isMorningPast && (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium">Morning</h3>
+                        {loadingSlots && (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Loading slots...
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="grid grid-cols-4 gap-3">
-                      {morningTimes.map((time) => {
-                        const slotInfo = getSlotInfo(time);
-                        const isAvailable = isSlotAvailable(time);
-                        const isSelected = selectedTime === time;
-                        
-                        return (
-                          <button
-                            key={time}
-                            onClick={() => {
-                              if (isAvailable && !loadingSlots && isUserValidated) {
-                                setSelectedTime(time);
-                              }
-                            }}
-                            disabled={!isUserValidated || !isAvailable || loadingSlots}
-                            className={`py-2 px-3 rounded-lg text-sm transition-all relative ${
-                              isSelected
-                                ? 'bg-black text-white'
-                                : isAvailable
-                                ? 'bg-gray-100 hover:bg-gray-200'
-                                : 'bg-red-100 text-red-400 cursor-not-allowed'
-                            } ${!isUserValidated || loadingSlots ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            <div className="font-medium">{time}</div>
-                            {scheduleDate && (
-                              <div className="text-xs mt-1">
-                                {isAvailable ? (
-                                  <>
-                                    <span className={slotInfo.available <= 2 ? 'text-orange-500 font-semibold' : isSelected ? 'text-white' : ''}>
-                                      {slotInfo.available}/{slotInfo.total} users
-                                    </span>
-                                    {slotInfo.userTransactions > 0 && (
-                                      <div className={isSelected ? 'text-white opacity-90' : 'text-blue-600'}>
-                                        Student: {slotInfo.userTransactions}/{slotInfo.maxPerUser}
-                                      </div>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-red-600 font-semibold">Full</span>
-                                )}
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
+                      <div className="grid grid-cols-4 gap-3">
+                        {morningTimes.map((time) => {
+                          const slotInfo = getSlotInfo(time);
+                          const isAvailable = isSlotAvailable(time);
+                          const isSelected = selectedTime === time;
+                          
+                          return (
+                            <button
+                              key={time}
+                              onClick={() => {
+                                if (isAvailable && !loadingSlots && isUserValidated) {
+                                  setSelectedTime(time);
+                                }
+                              }}
+                              disabled={!isUserValidated || !isAvailable || loadingSlots}
+                              className={`py-2 px-3 rounded-lg text-sm transition-all relative ${
+                                isSelected
+                                  ? 'bg-black text-white'
+                                  : isAvailable
+                                  ? 'bg-gray-100 hover:bg-gray-200'
+                                  : 'bg-red-100 text-red-400 cursor-not-allowed'
+                              } ${!isUserValidated || loadingSlots ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <div className="font-medium">{time}</div>
+                              {scheduleDate && (
+                                <div className="text-xs mt-1">
+                                  {isAvailable ? (
+                                    <>
+                                      <span className={slotInfo.available <= 2 ? 'text-orange-500 font-semibold' : isSelected ? 'text-white' : ''}>
+                                        {slotInfo.available}/{slotInfo.total} users
+                                      </span>
+                                      {slotInfo.userTransactions > 0 && (
+                                        <div className={isSelected ? 'text-white opacity-90' : 'text-blue-600'}>
+                                          Student: {slotInfo.userTransactions}/{slotInfo.maxPerUser}
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className="text-red-600 font-semibold">Full</span>
+                                  )}
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* AFTERNOON TIME */}
                   <div>

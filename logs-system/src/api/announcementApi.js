@@ -125,8 +125,36 @@ export const unpublishAnnouncement = async (id) => {
   }
 };
 
+/**
+ * Get archived announcements (Admin)
+ * @returns {Promise} API response with archived announcements list
+ */
+export const getArchivedAnnouncements = async () => {
+  try {
+    const response = await api.get('/announcements/archived');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch archived announcements' };
+  }
+};
+
+/**
+ * Restore archived announcement
+ * @param {number} id - Announcement ID
+ * @returns {Promise} API response
+ */
+export const restoreAnnouncement = async (id) => {
+  try {
+    const response = await api.post(`/announcements/${id}/restore`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to restore announcement' };
+  }
+};
+
 export default {
   getAllAnnouncements,
+  getArchivedAnnouncements,
   getPublishedAnnouncements,
   getAnnouncement,
   createAnnouncement,
@@ -134,4 +162,5 @@ export default {
   deleteAnnouncement,
   publishAnnouncement,
   unpublishAnnouncement,
+  restoreAnnouncement,
 };

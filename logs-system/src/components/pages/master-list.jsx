@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Users, Plus, Edit, Trash2, Import, Loader2 } from 'lucide-react';
+import { Search, Users, Plus, Import, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,22 +22,20 @@ import {
 } from '@/components/ui/table';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
-import EditMasterlistDialog from "@/components/modals/edit-masterlist";
 import ImportMasterlistDialog from "@/components/modals/import-masterlist";
 import { Link } from 'react-router-dom';
-import { getAllMasterlist, deleteMasterlistEntry } from '../../api/masterlistApi';
+import { getAllMasterlist, updateMasterlistEntry } from '../../api/masterlistApi';
 import { toast } from 'sonner';
 
 const Masteerlist = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [selectedMasterlist, setSelectedMasterlist] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState('All');
   const [masterlistData, setMasterlistData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [updatingStatus, setUpdatingStatus] = useState(null); // Track which entry is being updated
   const itemsPerPage = 10;
 
   // Fetch masterlist data on component mount
@@ -91,48 +89,25 @@ const Masteerlist = () => {
     setCurrentPage(1);
   }, [searchQuery, selectedCourse]);
 
-  const handleEditClick = (item) => {
-    setSelectedMasterlist(item);
-    setIsDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setSelectedMasterlist(null);
-  };
-
-  const handleMasterlistUpdated = () => {
-    // Refresh the masterlist data after update
-    fetchMasterlistData();
-  };
-
-  const handleImportSuccess = () => {
-    // Refresh the masterlist data after import
-    fetchMasterlistData();
-  };
-
-  const handleOpenImportDialog = () => {
-    setIsImportDialogOpen(true);
-  };
-
-  const handleCloseImportDialog = () => {
-    setIsImportDialogOpen(false);
-  };
-
-  const handleDelete = async (id, studentName) => {
+  const handleToggleStatus = async (item) => {
+    const newStatus = item.status === 'Active' ? 'Inactive' : 'Active';
+    const actionText = newStatus === 'Inactive' ? 'deactivate' : 'activate';
+    
     toast.warning(
       <div>
-        <p className="font-semibold">Delete {studentName}?</p>
-        <p className="text-sm">This action cannot be undone.</p>
+        <p className="font-semibold">
+          {newStatus === 'Inactive' ? 'Deactivate' : 'Activate'} {item.fname} {item.lname}?
+        </p>
+        <p className="text-sm">This will change the student's status to {newStatus}.</p>
         <div className="flex gap-2 mt-3">
           <button
             onClick={() => {
-              confirmDelete(id);
+              confirmToggleStatus(item.id, newStatus, `${item.fname} ${item.lname}`);
               toast.dismiss();
             }}
-            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+            className={`px-3 py-1 ${newStatus === 'Inactive' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white rounded text-sm`}
           >
-            Delete
+            Confirm
           </button>
           <button
             onClick={() => toast.dismiss()}
@@ -146,16 +121,32 @@ const Masteerlist = () => {
     );
   };
 
-  const confirmDelete = async (id) => {
+  const confirmToggleStatus = async (id, newStatus, studentName) => {
+    setUpdatingStatus(id);
     try {
-      await deleteMasterlistEntry(id);
-      toast.success("Student deleted successfully!");
+      await updateMasterlistEntry(id, { status: newStatus });
+      toast.success(`${studentName} is now ${newStatus}!`);
       // Refresh the masterlist data
       fetchMasterlistData();
     } catch (err) {
-      console.error("❌ Error deleting masterlist entry:", err);
-      toast.error(err.message || "Failed to delete student");
+      console.error("❌ Error updating status:", err);
+      toast.error(err.message || "Failed to update status");
+    } finally {
+      setUpdatingStatus(null);
     }
+  };
+
+  const handleImportSuccess = () => {
+    // Refresh the masterlist data after import
+    fetchMasterlistData();
+  };
+
+  const handleOpenImportDialog = () => {
+    setIsImportDialogOpen(true);
+  };
+
+  const handleCloseImportDialog = () => {
+    setIsImportDialogOpen(false);
   };
 
   return (
@@ -281,16 +272,26 @@ const Masteerlist = () => {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                  onClick={() => handleEditClick(item)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className={`${
+                                  item.status === 'Active' 
+                                    ? 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300' 
+                                    : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-300'
+                                }`}
+                                onClick={() => handleToggleStatus(item)}
+                                disabled={updatingStatus === item.id}
+                              >
+                                {updatingStatus === item.id ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                    Updating...
+                                  </>
+                                ) : (
+                                  item.status === 'Active' ? 'Set Inactive' : 'Set Active'
+                                )}
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -313,14 +314,6 @@ const Masteerlist = () => {
           </div>
         </main>
       </div>
-
-      {/* Edit Masterlist Dialog */}
-      <EditMasterlistDialog
-        isOpen={isDialogOpen}
-        onClose={handleCloseDialog}
-        masterlist={selectedMasterlist}
-        onMasterlistUpdated={handleMasterlistUpdated}
-      />
 
       {/* Import Masterlist Dialog */}
       <ImportMasterlistDialog

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear localStorage - Fix 401 Error</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #15592F;
+            margin-bottom: 10px;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        button {
+            background: #15592F;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #104624;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .step {
+            margin: 15px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .step::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #15592F;
+            font-weight: bold;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix 401 Unauthorized Error</h1>
+        <p>Ang token na nakasave sa localStorage ay galing pa sa Railway server. Kailangan i-clear at mag-login ulit sa localhost.</p>
+
+        <div class="warning">
+            <strong>⚠️ Warning:</strong> This will clear your saved login tokens. You need to login again after clearing.
+        </div>
+
+        <div class="info">
+            <strong>📋 What this will do:</strong>
+            <div class="step">Clear <code>admin_token</code> from localStorage</div>
+            <div class="step">Clear <code>user_token</code> from localStorage</div>
+            <div class="step">Clear all other localStorage data</div>
+            <div class="step">Redirect you to login page</div>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button onclick="clearStorage()">🗑️ Clear localStorage & Fix Error</button>
+            <button class="secondary" onclick="window.close()">Cancel</button>
+        </div>
+
+        <div id="successMessage" class="success">
+            <strong>✅ Success!</strong> localStorage has been cleared. Redirecting to login page in <span id="countdown">3</span> seconds...
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+        <h3>🖥️ Current Server Setup:</h3>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 14px;">
+            <div style="margin: 5px 0;">
+                <strong>Frontend (React):</strong> http://localhost:5175/
+            </div>
+            <div style="margin: 5px 0;">
+                <strong>Backend (Laravel):</strong> http://127.0.0.1:8000/api
+            </div>
+            <div style="margin: 5px 0; color: #dc3545;">
+                <strong>❌ OLD (Railway):</strong> <del>https://logs-server-system-production.up.railway.app/api</del>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;">
+            <strong>💡 After clearing localStorage:</strong>
+            <ol style="margin: 10px 0; padding-left: 20px;">
+                <li>Go to <code>http://localhost:5175/</code></li>
+                <li>Login with your admin credentials</li>
+                <li>The app will now use <strong>localhost API</strong></li>
+                <li>No more 401 errors! ✅</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function clearStorage() {
+            console.log('🗑️ Clearing localStorage...');
+            console.log('Before:', localStorage);
+            
+            // Clear everything
+            localStorage.clear();
+            
+            console.log('After:', localStorage);
+            console.log('✅ localStorage cleared!');
+
+            // Show success message
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Countdown and redirect
+            let countdown = 3;
+            const countdownElement = document.getElementById('countdown');
+            
+            const timer = setInterval(() => {
+                countdown--;
+                countdownElement.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    window.location.href = 'http://localhost:5175/';
+                }
+            }, 1000);
+        }
+
+        // Also show current localStorage content
+        console.log('📦 Current localStorage:', localStorage);
+        console.log('🔑 admin_token:', localStorage.getItem('admin_token'));
+        console.log('🔑 user_token:', localStorage.getItem('user_token'));
+    </script>
+</body>
+</html>

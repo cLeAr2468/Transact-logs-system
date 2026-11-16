@@ -85,6 +85,21 @@ export const deleteUser = async (userId) => {
   }
 };
 
+/**
+ * Update user status
+ * @param {number} userId - User ID
+ * @param {string} status - New status (Active/Inactive)
+ * @returns {Promise} API response
+ */
+export const updateUserStatus = async (userId, status) => {
+  try {
+    const response = await api.put(`/users/${userId}/status`, { status });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to update status' };
+  }
+};
+
 export default {
   getAllUsers,
   getUserStatistics,
@@ -92,4 +107,5 @@ export default {
   createUser,
   updateUser,
   deleteUser,
+  updateUserStatus,
 };

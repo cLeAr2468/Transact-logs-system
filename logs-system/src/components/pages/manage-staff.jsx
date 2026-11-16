@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Users, CheckCircle, XCircle, Crown, Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
-import { getAllStaff, deleteStaff } from '../../api/staffApi';
+import { Search, Users, CheckCircle, XCircle, Crown, Plus, Trash2, RefreshCw } from 'lucide-react';
+import { getAllStaff, deleteStaff, updateStaffStatus } from '../../api/staffApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,13 +24,10 @@ import {
 } from '@/components/ui/table';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '../layout/Asidebar';
-import EditStaffDialog from "@/components/modals/edit-staff";
 import { toast } from "sonner";
 
 const Managestaff = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -116,19 +113,44 @@ const Managestaff = () => {
     setCurrentPage(1);
   }, [searchQuery, selectedStatus]);
 
-  const handleEditClick = (user) => {
-    setSelectedStaff(user);
-    setIsDialogOpen(true);
+  const handleToggleStatus = async (staffId, currentStatus, staffName) => {
+    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+    
+    toast.warning(
+      <div>
+        <p className="font-semibold">Change status to {newStatus}?</p>
+        <p className="text-sm">{staffName} will be set to {newStatus}.</p>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => {
+              confirmToggleStatus(staffId, newStatus, staffName);
+              toast.dismiss();
+            }}
+            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+          >
+            Confirm
+          </button>
+          <button
+            onClick={() => toast.dismiss()}
+            className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>,
+      { duration: 10000 }
+    );
   };
 
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setSelectedStaff(null);
-  };
-
-  const handleStaffUpdated = () => {
-    // Refresh staff data after update
-    fetchStaffData();
+  const confirmToggleStatus = async (staffId, newStatus, staffName) => {
+    try {
+      await updateStaffStatus(staffId, newStatus);
+      toast.success(`${staffName} is now ${newStatus}`);
+      fetchStaffData();
+    } catch (err) {
+      console.error("❌ Error updating status:", err);
+      toast.error(err.message || "Failed to update status");
+    }
   };
 
   const handleDeleteClick = async (staffId, staffName) => {
@@ -287,14 +309,29 @@ const Managestaff = () => {
                               </TableCell>
                             
                               <TableCell>
-                                <div className="flex items-center">
+                                <div className="flex items-center gap-2">
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                    onClick={() => handleEditClick(user)}
+                                    className={
+                                      user.status === 'Active'
+                                        ? 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                                        : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                                    }
+                                    onClick={() =>
+                                      handleToggleStatus(
+                                        user.id,
+                                        user.status,
+                                        `${user.fname} ${user.lname}`
+                                      )
+                                    }
+                                    title={user.status === 'Active' ? 'Set Inactive' : 'Set Active'}
                                   >
-                                    <Edit className="w-4 h-4" />
+                                    {user.status === 'Active' ? (
+                                      <XCircle className="w-4 h-4" />
+                                    ) : (
+                                      <CheckCircle className="w-4 h-4" />
+                                    )}
                                   </Button>
                                 </div>
                               </TableCell>
@@ -319,14 +356,6 @@ const Managestaff = () => {
           </div>
         </main>
       </div>
-
-      {/* Edit Staff Dialog */}
-      <EditStaffDialog
-        isOpen={isDialogOpen}
-        onClose={handleCloseDialog}
-        staff={selectedStaff}
-        onStaffUpdated={handleStaffUpdated}
-      />
     </SidebarProvider>
   );
 };

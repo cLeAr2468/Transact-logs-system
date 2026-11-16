@@ -3,9 +3,14 @@ import Login from "@/components/pages/login";
 import Dashboard from "@/components/layout/dashboard";
 import Staff from "@/components/pages/manage-staff";
 import Client from "@/components/pages/manage-client";
+import ClientDetails from "@/components/pages/client-details";
 import Transaction from "@/components/pages/transact";
+import TransactionDetails from "@/components/pages/transact-details";
+import TransactionsByPurpose from "@/components/pages/transactions-by-purpose";
 import Reports from "@/components/pages/reports";
 import Announcement from "@/components/pages/announce";
+import AnnouncementHistory from "@/components/pages/announcement-history";
+import Notifications from "@/components/pages/notifications";
 import AddTransaction from "@/components/pages/add-transact"
 import AddAnnouncement from "@/components/pages/announce-form";
 import Register from "@/components/pages/Client-register";
@@ -28,9 +33,14 @@ function Reroutes() {
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/manage-users" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
       <Route path="/manage-client" element={<ProtectedRoute><Client /></ProtectedRoute>} />
+      <Route path="/client-details/:userId" element={<ProtectedRoute><ClientDetails /></ProtectedRoute>} />
       <Route path="/transact" element={<ProtectedRoute><Transaction /></ProtectedRoute>} />
+      <Route path="/transact/:id" element={<ProtectedRoute><TransactionDetails /></ProtectedRoute>} />
+      <Route path="/transactions-by-purpose/:purposeName" element={<ProtectedRoute><TransactionsByPurpose /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
       <Route path="/announce" element={<ProtectedRoute><Announcement /></ProtectedRoute>} />
+      <Route path="/announcement-history" element={<ProtectedRoute><AnnouncementHistory /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
       <Route path="/add-transact" element={<ProtectedRoute><AddTransaction /></ProtectedRoute>} />
       <Route path="/add-announcement" element={<ProtectedRoute><AddAnnouncement /></ProtectedRoute>} />
       <Route path="/Client-register" element={<ProtectedRoute><Register /></ProtectedRoute>} />

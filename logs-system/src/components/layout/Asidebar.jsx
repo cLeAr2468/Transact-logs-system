@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Logo from "@/assets/nwssu 1.png";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -26,6 +27,7 @@ import {
   UserCircle,
   Target,
   Activity,
+  Bell,
 } from "lucide-react";
 
 const items = [
@@ -35,23 +37,18 @@ const items = [
     icon: LayoutDashboard,
     relatedRoutes: [],
   },
-  {
+    {
     title: "Profile",
     url: "/profile",
     icon: UserCircle,
     relatedRoutes: [],
   },
-  {
-    title: "Staff",
-    url: "/manage-users",
-    icon: Users,
-    relatedRoutes: ["/add-staff"],
-  },
+
   {
     title: "Client",
     url: "/manage-client",
     icon: UserCheckIcon,
-    relatedRoutes: ["/Client-register"],
+    relatedRoutes: ["/Client-register", "/client-details"],
   },
   {
     title: "Master list",
@@ -60,16 +57,22 @@ const items = [
     relatedRoutes: ["/add-manual"],
   },
   {
-    title: "Transaction",
-    url: "/transact",
-    icon: ArrowLeftRight,
-    relatedRoutes: ["/add-transact"],
+    title: "Staff",
+    url: "/manage-users",
+    icon: Users,
+    relatedRoutes: ["/add-staff"],
   },
   {
     title: "Manage Purpose",
     url: "/manage-purpose",
     icon: Target,
     relatedRoutes: [],
+  },
+    {
+    title: "Transaction",
+    url: "/transact",
+    icon: ArrowLeftRight,
+    relatedRoutes: ["/add-transact", "/transact-details"],
   },
   {
     title: "Reports",
@@ -81,18 +84,55 @@ const items = [
     title: "Announcements",
     url: "/announce",
     icon: Megaphone,
-    relatedRoutes: ["/add-announcement"],
+    relatedRoutes: ["/add-announcement", "/announcement-history"],
   },
-    {
+  {
     title: "Activity Logs",
     url: "/Activity",
     icon: Activity,
-    relatedRoutes: ["/add-announcement"],
+    relatedRoutes: [],
   },
+  {
+    title: "Notifications",
+    url: "/notifications",
+    icon: Bell,
+    relatedRoutes: [],
+    showBadge: true,
+  },
+
 ];
 
 export function AppSidebar() {
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const token = localStorage.getItem('admin_token');
+        if (!token) return;
+        
+        const response = await fetch('http://localhost:8000/api/notifications', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUnreadCount(data.unread_count || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const getUserRole = () => {
     try {
@@ -167,7 +207,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <NavLink to={item.url}>
                       <SidebarMenuButton
-                        className={`h-16 rounded-none px-5 text-[15px] flex items-center gap-3 cursor-pointer w-full
+                        className={`h-16 rounded-none px-5 text-[15px] flex items-center gap-3 cursor-pointer w-full relative
                         ${
                           isActive
                             ? "bg-yellow-500 text-black hover:bg-yellow-500 hover:text-black"
@@ -176,6 +216,11 @@ export function AppSidebar() {
                       >
                         <item.icon className="w-6 h-6 shrink-0" />
                         <span>{item.title}</span>
+                        {item.showBadge && unreadCount > 0 && (
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                          </span>
+                        )}
                       </SidebarMenuButton>
                     </NavLink>
                   </SidebarMenuItem>

@@ -67,8 +67,13 @@ function AddStaff() {
     const { id, value } = e.target;
     
     let processedValue = value;
+    
+    // For name fields - only allow letters, spaces, periods, and hyphens
     if (["fname", "mname", "lname"].includes(id)) {
-      processedValue = autoCapitalize(value);
+      // Remove any numbers and special characters except spaces, periods, and hyphens
+      processedValue = value.replace(/[^a-zA-Z\s.-]/g, '');
+      // Auto-capitalize
+      processedValue = autoCapitalize(processedValue);
     } else if (id === "staff_id") {
       processedValue = formatStaffId(value);
     }
@@ -298,12 +303,13 @@ function AddStaff() {
 
                       <Input
                         id="staff_id"
-                        placeholder="2024-00001"
+                        placeholder="21-SJ00303"
                         value={form.staff_id}
                         onChange={handleChange}
                         onBlur={() => handleBlur("staff_id")}
                         className={`pl-10 ${touched.staff_id && errors.staff_id ? "border-red-500" : ""}`}
                         required
+                        autoComplete="off"
                       />
                     </div>
                     {touched.staff_id && errors.staff_id && (
@@ -312,6 +318,7 @@ function AddStaff() {
                         {errors.staff_id}
                       </p>
                     )}
+                    <p className="text-xs text-gray-500">Enter unique staff identification number</p>
                   </div>
 
                   {/* Name fields and Email - 2 Column Grid */}
@@ -325,12 +332,13 @@ function AddStaff() {
 
                         <Input
                           id="fname"
-                          placeholder="Enter First Name"
+                          placeholder="Juan"
                           value={form.fname}
                           onChange={handleChange}
                           onBlur={() => handleBlur("fname")}
                           className={`pl-10 ${touched.fname && errors.fname ? "border-red-500" : ""}`}
                           required
+                          autoComplete="given-name"
                         />
                       </div>
                       {touched.fname && errors.fname && (
@@ -339,6 +347,7 @@ function AddStaff() {
                           {errors.fname}
                         </p>
                       )}
+                      <p className="text-xs text-gray-500">Letters only, no numbers or special characters</p>
                     </div>
 
                     {/* Middle Name */}
@@ -350,11 +359,12 @@ function AddStaff() {
 
                         <Input
                           id="mname"
-                          placeholder="Enter Middle Name (Optional)"
+                          placeholder="Dela Cruz"
                           value={form.mname}
                           onChange={handleChange}
                           onBlur={() => handleBlur("mname")}
                           className={`pl-10 ${touched.mname && errors.mname ? "border-red-500" : ""}`}
+                          autoComplete="additional-name"
                         />
                       </div>
                       {touched.mname && errors.mname && (
@@ -363,6 +373,7 @@ function AddStaff() {
                           {errors.mname}
                         </p>
                       )}
+                      <p className="text-xs text-gray-500">Letters only, no numbers or special characters</p>
                     </div>
 
                     {/* Last Name */}
@@ -374,12 +385,13 @@ function AddStaff() {
 
                         <Input
                           id="lname"
-                          placeholder="Enter Last Name"
+                          placeholder="Santos"
                           value={form.lname}
                           onChange={handleChange}
                           onBlur={() => handleBlur("lname")}
                           className={`pl-10 ${touched.lname && errors.lname ? "border-red-500" : ""}`}
                           required
+                          autoComplete="family-name"
                         />
                       </div>
                       {touched.lname && errors.lname && (
@@ -388,6 +400,7 @@ function AddStaff() {
                           {errors.lname}
                         </p>
                       )}
+                      <p className="text-xs text-gray-500">Letters only, no numbers or special characters</p>
                     </div>
 
                     {/* Email */}
@@ -400,12 +413,13 @@ function AddStaff() {
                         <Input
                           id="email"
                           type="email"
-                          placeholder="Enter Email Address"
+                          placeholder="juan.santos@example.com"
                           value={form.email}
                           onChange={handleChange}
                           onBlur={() => handleBlur("email")}
                           className={`pl-10 ${touched.email && errors.email ? "border-red-500" : ""}`}
                           required
+                          autoComplete="email"
                         />
                       </div>
                       {touched.email && errors.email && (
@@ -431,12 +445,13 @@ function AddStaff() {
                           <Input
                             id="password"
                             type={showPassword ? "text" : "password"}
-                            placeholder="Enter Password"
+                            placeholder="••••••••"
                             value={form.password}
                             onChange={handleChange}
                             onBlur={() => handleBlur("password")}
                             className={`pl-10 pr-10 ${touched.password && errors.password ? "border-red-500" : ""}`}
                             required
+                            autoComplete="new-password"
                           />
                           
                           <button
@@ -493,7 +508,7 @@ function AddStaff() {
                           <Input
                             id="confirmPassword"
                             type={showConfirmPassword ? "text" : "password"}
-                            placeholder="Confirm Password"
+                            placeholder="••••••••"
                             value={confirmPassword}
                             onChange={(e) => {
                               setConfirmPassword(e.target.value);
@@ -510,6 +525,7 @@ function AddStaff() {
                                 : ""
                             }`}
                             required
+                            autoComplete="new-password"
                           />
                           
                           <div className="absolute right-3 top-3 flex items-center gap-1">

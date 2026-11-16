@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Users, CheckCircle, XCircle, Plus, Edit, Trash2, Import, RefreshCw } from 'lucide-react';
-import { getAllUsers, getUserStatistics, deleteUser } from '../../api/userApi';
+import { Search, Users, CheckCircle, XCircle, Plus, Trash2, Import, RefreshCw, Eye } from 'lucide-react';
+import { getAllUsers, getUserStatistics, deleteUser, updateUserStatus } from '../../api/userApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,14 +23,12 @@ import {
 } from '@/components/ui/table';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
-import EditClientDialog from "@/components/modals/edit-client";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const ManageClient = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [users, setUsers] = useState([]);
@@ -107,7 +105,12 @@ const ManageClient = () => {
   // Filter users based on search query and filters
   const filteredUsers = users.filter((user) => {
     const query = searchQuery.toLowerCase();
-    const fullName = `${user.fname || ''} ${user.mname || ''} ${user.lname || ''}`.toLowerCase();
+    const mname = user.mname || '';
+    // Check if middle name should be hidden (NA, N.A, N A, N.A., N/A, etc.)
+    const hideMiddle = !mname || /^N\.?\/?\s*A\.?$/i.test(mname.trim());
+    const fullName = hideMiddle
+      ? `${user.fname || ''} ${user.lname || ''}`.toLowerCase()
+      : `${user.fname || ''} ${mname} ${user.lname || ''}`.toLowerCase();
     const matchesSearch =
       fullName.includes(query) ||
       (user.email && user.email.toLowerCase().includes(query)) ||
@@ -143,23 +146,52 @@ const ManageClient = () => {
     });
   };
 
-  const handleEditClick = (user) => {
-    setSelectedClient(user);
-    setIsDialogOpen(true);
+  const handleToggleStatus = async (studentId, currentStatus, userName) => {
+    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+    
+    toast.warning(
+      <div>
+        <p className="font-semibold">Change status to {newStatus}?</p>
+        <p className="text-sm">{userName} will be set to {newStatus}.</p>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => {
+              confirmToggleStatus(studentId, newStatus, userName);
+              toast.dismiss();
+            }}
+            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+          >
+            Confirm
+          </button>
+          <button
+            onClick={() => toast.dismiss()}
+            className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>,
+      { duration: 10000 }
+    );
   };
 
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setSelectedClient(null);
+  const confirmToggleStatus = async (studentId, newStatus, userName) => {
+    try {
+      await updateUserStatus(studentId, newStatus);
+      toast.success(`${userName} is now ${newStatus}`);
+      fetchUsersData();
+      fetchStatistics();
+    } catch (err) {
+      console.error("❌ Error updating status:", err);
+      toast.error(err.message || "Failed to update status");
+    }
   };
 
-  const handleUserUpdated = () => {
-    // Refresh users data after update
-    fetchUsersData();
-    fetchStatistics();
+  const handleViewDetails = (studentId) => {
+    navigate(`/client-details/${studentId}`);
   };
 
-  const handleDeleteClick = async (userId, userName) => {
+  const handleDeleteClick = async (studentId, userName) => {
     toast.warning(
       <div>
         <p className="font-semibold">Delete {userName}?</p>
@@ -167,7 +199,7 @@ const ManageClient = () => {
         <div className="flex gap-2 mt-3">
           <button
             onClick={() => {
-              confirmDeleteUser(userId);
+              confirmDeleteUser(studentId);
               toast.dismiss();
             }}
             className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
@@ -186,9 +218,9 @@ const ManageClient = () => {
     );
   };
 
-  const confirmDeleteUser = async (userId) => {
+  const confirmDeleteUser = async (studentId) => {
     try {
-      const response = await deleteUser(userId);
+      const response = await deleteUser(studentId);
       console.log("✅ User deleted:", response);
       toast.success(response.message || "User deleted successfully!");
       
@@ -349,10 +381,16 @@ const ManageClient = () => {
                           </TableRow>
                         ) : (
                           paginatedUsers.map((user) => (
-                            <TableRow key={user.id}>
+                            <TableRow key={user.student_id}>
                               <TableCell className="font-medium">{user.student_id}</TableCell>
                               <TableCell className="font-medium">
-                                {`${user.fname || ''} ${user.mname || ''} ${user.lname || ''}`.trim()}
+                                {(() => {
+                                  const mname = user.mname || '';
+                                  const hideMiddle = !mname || /^N\.?\/?\s*A\.?$/i.test(mname.trim());
+                                  return hideMiddle
+                                    ? `${user.fname || ''} ${user.lname || ''}`.trim()
+                                    : `${user.fname || ''} ${mname} ${user.lname || ''}`.trim();
+                                })()}
                               </TableCell>
                               <TableCell>{user.email}</TableCell>
                               <TableCell>{user.course}</TableCell>
@@ -371,10 +409,34 @@ const ManageClient = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                    onClick={() => handleEditClick(user)}
+                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    onClick={() => handleViewDetails(user.student_id)}
+                                    title="View Details"
                                   >
-                                    <Edit className="w-4 h-4" />
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={
+                                      user.status === 'Active'
+                                        ? 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                                        : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                                    }
+                                    onClick={() =>
+                                      handleToggleStatus(
+                                        user.student_id,
+                                        user.status,
+                                        `${user.fname} ${user.lname}`
+                                      )
+                                    }
+                                    title={user.status === 'Active' ? 'Set Inactive' : 'Set Active'}
+                                  >
+                                    {user.status === 'Active' ? (
+                                      <XCircle className="w-4 h-4" />
+                                    ) : (
+                                      <CheckCircle className="w-4 h-4" />
+                                    )}
                                   </Button>
                                 </div>
                               </TableCell>
@@ -399,14 +461,6 @@ const ManageClient = () => {
           </div>
         </main>
       </div>
-
-      {/* Edit Client Dialog */}
-      <EditClientDialog
-        isOpen={isDialogOpen}
-        onClose={handleCloseDialog}
-        client={selectedClient}
-        onUserUpdated={handleUserUpdated}
-      />
     </SidebarProvider>
   );
 };

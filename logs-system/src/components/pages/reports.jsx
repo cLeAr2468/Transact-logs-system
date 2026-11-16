@@ -54,20 +54,28 @@ export default function Reports() {
     total_feedback: 0
   });
   const [purposeData, setPurposeData] = useState([]);
+  const [purposes, setPurposes] = useState([]);
   const [recentReports, setRecentReports] = useState([]);
   const [feedbackData, setFeedbackData] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [purposeFilter, setPurposeFilter] = useState('all');
+  const [transactionsPage, setTransactionsPage] = useState(1);
+  const [transactionsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   
   // Export dialog state
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [reportType, setReportType] = useState("Student Affairs Services Summary");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [fileFormat, setFileFormat] = useState("pdf");
   const [includeSummary, setIncludeSummary] = useState(true);
   const [includeDetails, setIncludeDetails] = useState(true);
   const [includeFeedback, setIncludeFeedback] = useState(false);
+  const [exportStatusFilter, setExportStatusFilter] = useState("all");
+  const [exportPurposeFilter, setExportPurposeFilter] = useState("all");
   
   // Pagination state for recent reports
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,27 +85,28 @@ export default function Reports() {
   const [feedbackCurrentPage, setFeedbackCurrentPage] = useState(1);
   const [feedbackItemsPerPage] = useState(10);
 
-  // Report type descriptions
-  const reportTypeDescriptions = {
-    "Student Affairs Services Summary": "Comprehensive summary of all student affairs services and transactions",
-    "Feedback Report": "Complete feedback and ratings report from all users per transaction",
-    "Monthly Transaction Summary": "Monthly overview of all transaction activities",
-    "Student ID Validation Report": "Report on student ID validation and verification services",
-    "Good Moral Character Certificates": "Records of good moral character certificates issued",
-    "Student Clearance Forms Report": "Student clearance forms processing and status",
-    "Affidavits of Loss Report": "Reports of lost school IDs and affidavits issued",
-    "Student Handbooks Distribution": "Distribution records of student handbooks",
-    "Certifications and Documents Report": "Various certifications and documents issued to students",
-    "Scholarship Applications Report": "Scholarship application submissions and processing",
-    "Documentary Requirements Report": "Documentary requirements collected and organized",
-    "Detailed Transaction Report": "Detailed breakdown of all individual transactions",
-    "Performance Metrics Report": "Performance metrics and efficiency analysis"
-  };
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || "https://logs-server-system-production.up.railway.app/api";
+  const fetchPurposes = async () => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+      const response = await fetch(`${API_BASE_URL}/purposes`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        setPurposes(data.purposes || []);
+      }
+    } catch (error) {
+      console.error('Error fetching purposes:', error);
+    }
+  };
 
   useEffect(() => {
     fetchReportsData();
+    fetchPurposes();
     // Set default dates (current month)
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -112,6 +121,7 @@ export default function Reports() {
       const token = localStorage.getItem('admin_token');
       if (!token) {
         toast.error('Authentication required');
+        setLoading(false);
         return;
       }
 
@@ -120,34 +130,42 @@ export default function Reports() {
         'Content-Type': 'application/json',
       };
 
+      console.log('🔄 Fetching reports data...');
+
       // Fetch statistics and purposes in parallel (critical data)
       const [statsRes, purposeRes] = await Promise.all([
         fetch(`${API_BASE_URL}/reports/statistics`, { headers }).catch(err => {
-          console.error('Stats fetch failed:', err);
+          console.error('❌ Stats fetch failed:', err);
           return { ok: false };
         }),
         fetch(`${API_BASE_URL}/reports/by-purpose`, { headers }).catch(err => {
-          console.error('Purpose data fetch failed:', err);
+          console.error('❌ Purpose data fetch failed:', err);
           return { ok: false };
         })
       ]);
 
       if (statsRes.ok) {
         const statsData = await statsRes.json();
+        console.log('✅ Statistics loaded:', statsData.statistics);
         setStatistics({
-          ...statsData.statistics,
+          total_transactions: statsData.statistics.total_transactions || 0,
+          target_percentage: statsData.statistics.target_percentage || 0,
+          most_requested: statsData.statistics.most_requested || { purpose: 'N/A', count: 0 },
+          completion_rate: statsData.statistics.completion_rate || 0,
           avg_rating: statsData.statistics.avg_rating || 0,
           total_feedback: statsData.statistics.total_feedback || 0
         });
       } else {
-        console.warn('Failed to load statistics');
+        console.warn('⚠️ Failed to load statistics:', statsRes.status);
+        toast.warning('Some statistics could not be loaded');
       }
 
       if (purposeRes.ok) {
         const purposeResData = await purposeRes.json();
+        console.log('✅ Purpose data loaded:', purposeResData.data?.length || 0, 'purposes');
         setPurposeData(purposeResData.data || []);
       } else {
-        console.warn('Failed to load purpose data');
+        console.warn('⚠️ Failed to load purpose data:', purposeRes.status);
       }
 
       // Fetch recent reports (non-critical, can fail gracefully)
@@ -155,59 +173,85 @@ export default function Reports() {
         const reportsRes = await fetch(`${API_BASE_URL}/reports/recent`, { headers });
         if (reportsRes.ok) {
           const reportsResData = await reportsRes.json();
+          console.log('✅ Recent reports loaded:', reportsResData.reports?.length || 0);
           setRecentReports(reportsResData.reports || []);
+        } else {
+          console.warn('⚠️ No recent reports available');
         }
       } catch (err) {
-        console.warn('Failed to load recent reports:', err);
+        console.warn('⚠️ Recent reports unavailable:', err);
       }
 
       // Fetch feedback data and statistics (non-critical)
       try {
-        const [feedbackRes, feedbackStatsRes] = await Promise.all([
+        const [feedbackRes, feedbackStatsRes, transactionsRes] = await Promise.all([
           fetch(`${API_BASE_URL}/feedback?per_page=1000`, { headers }),
-          fetch(`${API_BASE_URL}/feedback/statistics`, { headers })
+          fetch(`${API_BASE_URL}/feedback/statistics`, { headers }),
+          fetch(`${API_BASE_URL}/admin/appointments`, { headers })
         ]);
         
-        if (feedbackRes.ok && feedbackStatsRes.ok) {
+        if (feedbackRes.ok) {
           const feedbackResData = await feedbackRes.json();
-          const statsResData = await feedbackStatsRes.json();
-          
+          console.log('✅ Feedback loaded:', feedbackResData.data?.length || 0, 'feedback entries');
           setFeedbackData(feedbackResData.data || []);
-          
+        }
+
+        if (feedbackStatsRes.ok) {
+          const statsResData = await feedbackStatsRes.json();
+          console.log('✅ Feedback stats loaded');
           setStatistics(prev => ({
             ...prev,
             avg_rating: statsResData.average_rating || 0,
             total_feedback: statsResData.total || 0
           }));
         }
+
+        if (transactionsRes.ok) {
+          const transactionsData = await transactionsRes.json();
+          console.log('✅ Transactions loaded:', transactionsData.transactions?.length || 0);
+          
+          // Validate transactions have required fields
+          const validTransactions = (transactionsData.transactions || []).filter(txn => {
+            const isValid = txn.id && txn.schedule_date;
+            if (!isValid) {
+              console.warn('⚠️ Invalid transaction:', txn);
+            }
+            return isValid;
+          });
+          
+          setAllTransactions(validTransactions);
+          setFilteredTransactions(validTransactions);
+        } else {
+          console.error('❌ Transactions fetch failed:', transactionsRes.status);
+          const errorText = await transactionsRes.text();
+          console.error('Error response:', errorText);
+          toast.error('Failed to load transactions');
+        }
       } catch (error) {
-        console.warn('Feedback data unavailable:', error);
+        console.error('❌ Feedback/Transactions error:', error);
         setFeedbackData([]);
+        setAllTransactions([]);
+        setFilteredTransactions([]);
       }
 
+      console.log('✅ Reports data fetch complete');
+
     } catch (error) {
-      console.error('Error fetching reports data:', error);
+      console.error('❌ Critical error fetching reports data:', error);
       toast.error('Failed to load reports data. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Auto-configure checkboxes when report type changes
-  const handleReportTypeChange = (newReportType) => {
-    setReportType(newReportType);
-    
-    // Auto-configure for Feedback Report
-    if (newReportType === "Feedback Report") {
-      setIncludeSummary(false);  // Don't need transaction summary
-      setIncludeDetails(false);  // Don't need transaction details
-      setIncludeFeedback(true);  // Only feedback data
-      toast.info('Configured for Feedback Report (feedback data only)');
-    } else {
-      // Reset to default for other reports
-      setIncludeSummary(true);
-      setIncludeDetails(true);
-      setIncludeFeedback(false);
+  // Auto-configure checkboxes based on feedback filter
+  const handleFeedbackToggle = (checked) => {
+    setIncludeFeedback(checked);
+    if (checked) {
+      // When enabling feedback, suggest also enabling details
+      if (!includeDetails) {
+        setIncludeDetails(true);
+      }
     }
   };
 
@@ -242,11 +286,21 @@ export default function Reports() {
         format: fileFormat,
         start_date: startDate,
         end_date: endDate,
-        report_type: reportType,
+        report_type: 'Transaction Report', // Generic report type
         include_summary: includeSummary ? '1' : '0',
         include_details: includeDetails ? '1' : '0',
         include_feedback: includeFeedback ? '1' : '0',
       });
+
+      // Add status filter if not "all"
+      if (exportStatusFilter !== 'all') {
+        params.append('status', exportStatusFilter);
+      }
+
+      // Add purpose filter if not "all"
+      if (exportPurposeFilter !== 'all') {
+        params.append('purpose', exportPurposeFilter);
+      }
 
       const response = await fetch(`${API_BASE_URL}/reports/export?${params}`, {
         method: 'GET',
@@ -379,6 +433,42 @@ export default function Reports() {
       setClearingReports(false);
     }
   };
+
+  // Filter transactions when filters change
+  useEffect(() => {
+    let filtered = allTransactions;
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(t => t.status === statusFilter);
+    }
+
+    if (purposeFilter !== 'all') {
+      filtered = filtered.filter(t => t.purpose?.name === purposeFilter);
+    }
+
+    setFilteredTransactions(filtered);
+    setTransactionsPage(1);
+  }, [statusFilter, purposeFilter, allTransactions]);
+
+  // Pagination for transactions
+  const transactionsTotalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
+  const transactionsStartIndex = (transactionsPage - 1) * transactionsPerPage;
+  const paginatedTransactions = filteredTransactions.slice(
+    transactionsStartIndex,
+    transactionsStartIndex + transactionsPerPage
+  );
+
+  const getStatusBadgeColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'completed': return 'bg-green-100 text-green-700';
+      case 'pending': return 'bg-yellow-100 text-yellow-700';
+      case 'approved': return 'bg-blue-100 text-blue-700';
+      case 'rejected': return 'bg-red-100 text-red-700';
+      case 'cancelled': return 'bg-gray-100 text-gray-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-[#F5F7FB]">
@@ -552,6 +642,152 @@ export default function Reports() {
             </Card>
           </div>
 
+          {/* Transactions Table - Organized by Status and Purpose */}
+          <Card className="border-0 shadow-sm rounded-2xl mb-6">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="font-semibold text-lg">Transaction Records</h3>
+                  <p className="text-sm text-muted-foreground">Organized by status and purpose</p>
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#15592F]"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="completed">Completed</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  <select
+                    value={purposeFilter}
+                    onChange={(e) => setPurposeFilter(e.target.value)}
+                    className="px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#15592F]"
+                  >
+                    <option value="all">All Purposes</option>
+                    {purposes.map((purpose) => (
+                      <option key={purpose.id} value={purpose.name}>
+                        {purpose.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Date Requested</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Appointment Date</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Student</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Purpose</th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Type</th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                          Loading transactions...
+                        </td>
+                      </tr>
+                    ) : paginatedTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                          No transactions found
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedTransactions.map((txn) => {
+                        const masterlist = txn.user?.masterlist;
+                        let studentName = 'N/A';
+                        
+                        if (masterlist) {
+                          const mname = masterlist.mname;
+                          // Check if middle name should be hidden (NA, N.A, N A, N.A., etc.)
+                          const hideMiddle = !mname || /^N\.?\s*A\.?$/i.test(mname.trim());
+                          
+                          studentName = hideMiddle
+                            ? `${masterlist.fname} ${masterlist.lname}`
+                            : `${masterlist.fname} ${mname} ${masterlist.lname}`;
+                        }
+                        
+                        return (
+                          <tr key={txn.id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {txn.date_requested ? new Date(txn.date_requested).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              }) : 'N/A'}
+                            </td>
+                            <td className="py-3 px-4 text-sm font-medium">
+                              {new Date(txn.schedule_date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </td>
+                            <td className="py-3 px-4 font-medium">{studentName}</td>
+                            <td className="py-3 px-4">{txn.purpose?.name || 'N/A'}</td>
+                            <td className="py-3 px-4 text-center">
+                              <Badge className={txn.request_type === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}>
+                                {txn.request_type === 'online' ? 'Online' : 'Walk-in'}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <Badge className={getStatusBadgeColor(txn.status)}>
+                                {txn.status?.charAt(0).toUpperCase() + txn.status?.slice(1)}
+                              </Badge>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {!loading && filteredTransactions.length > 0 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {transactionsStartIndex + 1} to {Math.min(transactionsStartIndex + transactionsPerPage, filteredTransactions.length)} of {filteredTransactions.length} transactions
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTransactionsPage(prev => Math.max(1, prev - 1))}
+                      disabled={transactionsPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="text-sm text-gray-600 px-3">
+                      Page {transactionsPage} of {transactionsTotalPages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTransactionsPage(prev => Math.min(transactionsTotalPages, prev + 1))}
+                      disabled={transactionsPage >= transactionsTotalPages}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Recent Reports - NOW VISIBLE */}
           <Card className="border-0 shadow-sm rounded-2xl">
             <CardContent className="p-6">
@@ -722,12 +958,21 @@ export default function Reports() {
                       {feedbackData
                         .slice((feedbackCurrentPage - 1) * feedbackItemsPerPage, feedbackCurrentPage * feedbackItemsPerPage)
                         .map((feedback, index) => {
-                          const studentName = feedback.user 
-                            ? `${feedback.user.fname || ''} ${feedback.user.mname || ''} ${feedback.user.lname || ''}`.trim()
-                            : 'N/A';
+                          const masterlist = feedback.user?.masterlist;
+                          let studentName = 'N/A';
                           
-                          // Use transaction_purpose directly from feedback, fallback to transaction_data
-                          const transactionPurpose = feedback.transaction_purpose || feedback.transaction_data?.purpose || 'N/A';
+                          if (masterlist) {
+                            const mname = masterlist.mname;
+                            // Check if middle name should be hidden (NA, N.A, N A, N.A., etc.)
+                            const hideMiddle = !mname || /^N\.?\s*A\.?$/i.test(mname.trim());
+                            
+                            studentName = hideMiddle
+                              ? `${masterlist.fname} ${masterlist.lname}`
+                              : `${masterlist.fname} ${mname} ${masterlist.lname}`;
+                          }
+                          
+                          // Use purpose relationship
+                          const transactionPurpose = feedback.purpose?.name || feedback.transaction?.purpose?.name || 'N/A';
                           
                           return (
                             <tr
@@ -825,36 +1070,51 @@ export default function Reports() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
                 <FileDown className="w-5 h-5 text-[#15592F]" />
-                Export Report
+                Export Transaction Report
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
-              {/* Report Type */}
-              <div className="space-y-2">
-                <Label>Select Report Type</Label>
-                <select
-                  value={reportType}
-                  onChange={(e) => handleReportTypeChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#15592F]"
-                >
-                  <option>Student Affairs Services Summary</option>
-                  <option>Feedback Report</option>
-                  <option>Monthly Transaction Summary</option>
-                  <option>Student ID Validation Report</option>
-                  <option>Good Moral Character Certificates</option>
-                  <option>Student Clearance Forms Report</option>
-                  <option>Affidavits of Loss Report</option>
-                  <option>Student Handbooks Distribution</option>
-                  <option>Certifications and Documents Report</option>
-                  <option>Scholarship Applications Report</option>
-                  <option>Documentary Requirements Report</option>
-                  <option>Detailed Transaction Report</option>
-                  <option>Performance Metrics Report</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {reportTypeDescriptions[reportType]}
-                </p>
+              {/* Filter Options */}
+              <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold text-base">Report Filters</Label>
+                  <span className="text-xs text-gray-500 italic">Customize your report data</span>
+                </div>
+                
+                {/* Status Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-700">Filter by Status</Label>
+                  <select
+                    value={exportStatusFilter}
+                    onChange={(e) => setExportStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#15592F]"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending Only</option>
+                    <option value="approved">Approved Only</option>
+                    <option value="completed">Completed Only</option>
+                    <option value="rejected">Rejected Only</option>
+                    <option value="cancelled">Cancelled Only</option>
+                  </select>
+                </div>
+
+                {/* Purpose Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-700">Filter by Purpose/Service</Label>
+                  <select
+                    value={exportPurposeFilter}
+                    onChange={(e) => setExportPurposeFilter(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#15592F]"
+                  >
+                    <option value="all">All Purposes</option>
+                    {purposes.map((purpose) => (
+                      <option key={purpose.id} value={purpose.name}>
+                        {purpose.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Date Range */}
@@ -937,18 +1197,17 @@ export default function Reports() {
               <div className="space-y-2">
                 <Label>Include in Report</Label>
                 <div className="space-y-2 bg-gray-50 p-3 rounded-lg">
-                  <div className={`flex items-start space-x-3 ${reportType === "Feedback Report" ? "opacity-50" : ""}`}>
+                  <div className="flex items-start space-x-3">
                     <Checkbox
                       id="summary"
                       checked={includeSummary}
                       onCheckedChange={setIncludeSummary}
-                      disabled={reportType === "Feedback Report"}
                       className="mt-0.5"
                     />
                     <div className="flex-1">
                       <label
                         htmlFor="summary"
-                        className={`text-sm font-medium leading-none ${reportType === "Feedback Report" ? "cursor-not-allowed" : "cursor-pointer"}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
                       >
                         Summary Overview
                       </label>
@@ -958,18 +1217,17 @@ export default function Reports() {
                     </div>
                   </div>
 
-                  <div className={`flex items-start space-x-3 ${reportType === "Feedback Report" ? "opacity-50" : ""}`}>
+                  <div className="flex items-start space-x-3">
                     <Checkbox
                       id="details"
                       checked={includeDetails}
                       onCheckedChange={setIncludeDetails}
-                      disabled={reportType === "Feedback Report"}
                       className="mt-0.5"
                     />
                     <div className="flex-1">
                       <label
                         htmlFor="details"
-                        className={`text-sm font-medium leading-none ${reportType === "Feedback Report" ? "cursor-not-allowed" : "cursor-pointer"}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
                       >
                         Detailed Transactions
                       </label>
@@ -983,21 +1241,18 @@ export default function Reports() {
                     <Checkbox
                       id="feedback"
                       checked={includeFeedback}
-                      onCheckedChange={setIncludeFeedback}
-                      disabled={reportType !== "Feedback Report"}
+                      onCheckedChange={handleFeedbackToggle}
                       className="mt-0.5"
                     />
                     <div className="flex-1">
                       <label
                         htmlFor="feedback"
-                        className={`text-sm font-medium leading-none ${reportType !== "Feedback Report" ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
                       >
                         Feedback Summary
                       </label>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {reportType === "Feedback Report" 
-                          ? "Include student feedback ratings and distribution" 
-                          : "Only available for Feedback Report type"}
+                        Include student feedback ratings and comments
                       </p>
                     </div>
                   </div>

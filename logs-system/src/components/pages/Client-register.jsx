@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import api from "../../api";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import AddressSelector from "@/components/common/AddressSelector";
+import { AddressSelectorComplete } from "@/components/common/AddressSelectorComplete";
 
 import {
   User,
@@ -54,9 +54,12 @@ function Register() {
     mname: "",
     lname: "",
     email: "",
-    barangay: "",
-    municipality: "",
+    suffix: "",
+    region: "",
     province: "",
+    municipality: "",
+    barangay: "",
+    purok: "",
     course: "",
     year_level: "",
     password: "",
@@ -70,11 +73,16 @@ function Register() {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
+  // Suffix options
+  const suffixOptions = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
+
   // Password validation
   const passwordValidation = useMemo(() => {
     if (!form.password) return null;
     return validatePassword(form.password);
   }, [form.password]);
+
+
 
   const passwordsMatch = form.password && confirmPassword && form.password === confirmPassword;
 
@@ -220,6 +228,7 @@ function Register() {
       case "province":
       case "municipality":
       case "barangay":
+      case "region":
         if (!form[field]) {
           error = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
         }
@@ -241,6 +250,7 @@ function Register() {
       "email",
       "course",
       "year_level",
+      "region",
       "province",
       "municipality",
       "barangay",
@@ -273,6 +283,7 @@ function Register() {
       email: true,
       course: true,
       year_level: true,
+      region: true,
       province: true,
       municipality: true,
       barangay: true,
@@ -316,7 +327,24 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await api.post("/register", form);
+      const registrationData = {
+        student_id: form.student_id,
+        fname: form.fname,
+        mname: form.mname,
+        lname: form.lname,
+        email: form.email,
+        course: form.course,
+        year_level: form.year_level,
+        suffix: form.suffix,
+        region: form.region,
+        province: form.province,
+        municipality: form.municipality,
+        barangay: form.barangay,
+        purok: form.purok,
+        password: form.password,
+      };
+
+      const response = await api.post("/register", registrationData);
 
       console.log(response.data);
 
@@ -328,9 +356,12 @@ function Register() {
         mname: "",
         lname: "",
         email: "",
-        barangay: "",
-        municipality: "",
+        suffix: "",
+        region: "",
         province: "",
+        municipality: "",
+        barangay: "",
+        purok: "",
         course: "",
         year_level: "",
         password: "",
@@ -460,19 +491,23 @@ function Register() {
 
                     {/* Middle Name */}
                     <div className="space-y-2">
-                      <Label htmlFor="mname">Middle Name (Optional)</Label>
+                      <Label htmlFor="mname">Middle Name <span className="text-red-500">*</span></Label>
 
                       <div className="relative">
                         <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
 
                         <Input
                           id="mname"
-                          placeholder="Enter Middle Name (Optional)"
+                          placeholder="Enter Middle Name"
                           value={form.mname}
                           onChange={handleChange}
                           className="pl-10"
+                          required
                         />
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        If no middle name, please enter "NA"
+                      </p>
                     </div>
 
                     {/* Last Name */}
@@ -559,27 +594,67 @@ function Register() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Suffix */}
+                    <div className="space-y-2">
+                      <Label>Suffix (Optional)</Label>
+
+                      <Select
+                        value={form.suffix}
+                        onValueChange={(value) =>
+                          setForm({ ...form, suffix: value })
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <SelectValue placeholder="Select Suffix" />
+                          </div>
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {suffixOptions.map((suffix) => (
+                            <SelectItem key={suffix} value={suffix}>
+                              {suffix}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   {/* Address Selector - Full Width */}
                   <div className="mt-6">
                     <h3 className="text-sm font-semibold mb-3">Address Information</h3>
-                    <AddressSelector
-                      province={form.province}
-                      municipality={form.municipality}
-                      barangay={form.barangay}
-                      onProvinceChange={(value) =>
-                        setForm({ ...form, province: value, municipality: "", barangay: "" })
-                      }
-                      onMunicipalityChange={(value) =>
-                        setForm({ ...form, municipality: value, barangay: "" })
-                      }
-                      onBarangayChange={(value) => 
-                        setForm({ ...form, barangay: value })
-                      }
+                    <AddressSelectorComplete
+                      values={{
+                        region: form.region,
+                        province: form.province,
+                        municipality: form.municipality,
+                        barangay: form.barangay
+                      }}
+                      onChange={(newValues) => {
+                        setForm({ ...form, ...newValues });
+                      }}
+                      errors={errors}
                       required={true}
-                      layout="grid"
                     />
+                    
+                    {/* Purok Field - Optional */}
+                    <div className="mt-4 space-y-2">
+                      <Label htmlFor="purok">Purok / Sitio (Optional)</Label>
+                      <Input
+                        id="purok"
+                        placeholder="Enter Purok or Sitio (Optional)"
+                        value={form.purok}
+                        onChange={handleChange}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Optional: Specify your purok or sitio for more detailed address
+                      </p>
+                    </div>
                   </div>
 
                   {/* Password Section - Full Width with 2 columns */}

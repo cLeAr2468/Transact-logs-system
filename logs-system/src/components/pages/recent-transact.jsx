@@ -15,6 +15,7 @@ import {
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '../layout/Asidebar';
 import { toast } from 'sonner';
+import api from '@/api';
 
 const RecentTransact = () => {
   const [loading, setLoading] = useState(false);
@@ -38,8 +39,6 @@ const RecentTransact = () => {
     endDate: '',
   });
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://logs-server-system-production.up.railway.app/api';
-
   useEffect(() => {
     // Check if user is admin
     const userType = localStorage.getItem('user_type');
@@ -55,21 +54,11 @@ const RecentTransact = () => {
 
   const fetchStatistics = async () => {
     try {
-      const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
-      
-      if (!token) return;
-
-      const response = await fetch(`${API_BASE_URL}/activity-logs/statistics`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-
-      const data = await response.json();
+      const response = await api.get('/activity-logs/statistics');
+      const data = response.data;
 
       // Only update statistics if response is successful
-      if (response.ok && data.success !== false) {
+      if (data.success !== false) {
         setStatistics(data.statistics || {
           total: 0,
           admin_count: 0,
@@ -77,26 +66,16 @@ const RecentTransact = () => {
           client_count: 0,
         });
       } else {
-        console.error('Failed to fetch statistics:', data.message || response.statusText);
-        // Don't update state, keep old data
+        console.error('Failed to fetch statistics:', data.message);
       }
     } catch (error) {
       console.error('Error fetching statistics:', error);
-      // Don't update state on error, keep old data
     }
   };
 
   const fetchActivityLogs = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
-      
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        setLoading(false);
-        return;
-      }
-
       const params = new URLSearchParams({
         per_page: pagination.per_page,
         page: pagination.current_page,
@@ -115,17 +94,11 @@ const RecentTransact = () => {
         params.append('end_date', dateFilter.endDate);
       }
 
-      const response = await fetch(`${API_BASE_URL}/activity-logs?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-
-      const data = await response.json();
+      const response = await api.get(`/activity-logs?${params}`);
+      const data = response.data;
 
       // Only update state if response is successful
-      if (response.ok && data.success !== false) {
+      if (data.success !== false) {
         setActivityLogs(data.logs || []);
         setPagination({
           current_page: data.current_page || 1,
@@ -134,22 +107,16 @@ const RecentTransact = () => {
           total: data.total || 0,
         });
       } else {
-        // Handle error responses
-        if (response.status === 401) {
-          toast.error('Session expired. Please log in again.');
-          localStorage.removeItem('admin_token');
-          localStorage.removeItem('token');
-          // Don't update state, keep old data
-        } else {
-          const errorMessage = data.message || response.statusText || 'Failed to load activity logs';
-          toast.error(`Failed to load activity logs: ${errorMessage}`);
-          // Don't update state, keep old data
-        }
+        const errorMessage = data.message || 'Failed to load activity logs';
+        toast.error(`Failed to load activity logs: ${errorMessage}`);
       }
     } catch (error) {
-      console.error('Error fetching activity logs:', error);
-      toast.error(`Failed to load activity logs: ${error.message}`);
-      // Don't update state on network error, keep old data
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+      } else {
+        console.error('Error fetching activity logs:', error);
+        toast.error(`Failed to load activity logs: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -161,28 +128,18 @@ const RecentTransact = () => {
     }
 
     try {
-      const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
-      
-      const response = await fetch(`${API_BASE_URL}/activity-logs/clear`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-
-      const data = await response.json();
+      const response = await api.delete('/activity-logs/clear');
+      const data = response.data;
 
       // Only refresh data if deletion was successful
-      if (response.ok && data.success !== false) {
+      if (data.success !== false) {
         toast.success(data.message || 'Activity logs cleared successfully');
         // Refresh data only after successful deletion
         fetchStatistics();
         fetchActivityLogs();
       } else {
-        const errorMessage = data.message || response.statusText || 'Failed to clear logs';
+        const errorMessage = data.message || 'Failed to clear logs';
         toast.error(`Failed to clear logs: ${errorMessage}`);
-        // Don't refresh data on error
       }
     } catch (error) {
       console.error('Error clearing logs:', error);

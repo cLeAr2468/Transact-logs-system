@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Loader2, History } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,11 +36,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Asidebar';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getAllAnnouncements, deleteAnnouncement, updateAnnouncement } from '@/api/announcementApi';
 import { toast } from "sonner";
 
 export default function AnnouncementPage() {
+  const navigate = useNavigate();
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,7 +56,6 @@ export default function AnnouncementPage() {
   const [editForm, setEditForm] = useState({
     title: '',
     content: '',
-    status: 'draft',
   });
   const [updating, setUpdating] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(null);
@@ -131,7 +131,6 @@ export default function AnnouncementPage() {
     setEditForm({
       title: announcement.title,
       content: announcement.content,
-      status: announcement.status,
     });
     setEditDialogOpen(true);
   };
@@ -151,7 +150,6 @@ export default function AnnouncementPage() {
       const formData = new FormData();
       formData.append('title', editForm.title);
       formData.append('content', editForm.content);
-      formData.append('status', editForm.status);
       formData.append('_method', 'PUT'); // Laravel method spoofing
 
       await updateAnnouncement(editingAnnouncement.id, formData);
@@ -228,12 +226,23 @@ export default function AnnouncementPage() {
                   Announcement
                 </h1>
 
-                <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold gap-2 px-6">
-                  <Plus className="h-4 w-4" />
-                  <Link to="/add-announcement" className="text-black">
-                    CREATE NEW ANNOUNCEMENT
-                  </Link>
-                </Button>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline"
+                    className="border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold gap-2 px-4"
+                    onClick={() => navigate('/announcement-history')}
+                  >
+                    <History className="h-4 w-4" />
+                    Delete History
+                  </Button>
+
+                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold gap-2 px-6">
+                    <Plus className="h-4 w-4" />
+                    <Link to="/add-announcement" className="text-black">
+                      CREATE NEW ANNOUNCEMENT
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -388,7 +397,7 @@ export default function AnnouncementPage() {
                                     )}
                                   </Button>
                                 ) : (
-                                  // Show edit button for draft status
+                                  // Show edit, delete, and publish buttons for draft status
                                   <>
                                     <Button
                                       size="icon"
@@ -397,6 +406,20 @@ export default function AnnouncementPage() {
                                       onClick={() => handleEdit(item)}
                                     >
                                       <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      className="h-8 w-8 flex-shrink-0 border-red-500 text-red-500 hover:bg-red-50"
+                                      onClick={() => handleDelete(item.id)}
+                                      disabled={deleting === item.id}
+                                    >
+                                      {deleting === item.id ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      )}
                                     </Button>
                                     
                                     {item.status === 'draft' && (
@@ -471,23 +494,6 @@ export default function AnnouncementPage() {
                   onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
                   className="w-full min-h-[150px]"
                 />
-              </div>
-
-              {/* Status */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-status">Status *</Label>
-                <Select 
-                  value={editForm.status} 
-                  onValueChange={(value) => setEditForm({ ...editForm, status: value })}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 

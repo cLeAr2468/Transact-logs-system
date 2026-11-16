@@ -17,6 +17,7 @@ import { AppSidebar } from './Asidebar';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import api from '@/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -36,9 +37,12 @@ const Dashboard = () => {
   const [activityLogs, setActivityLogs] = useState([]);
   const [performanceData, setPerformanceData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [transactionsPage, setTransactionsPage] = useState(1);
+  const [serviceFilter, setServiceFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [serviceTransactions, setServiceTransactions] = useState([]);
   const itemsPerPage = 10;
-
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://logs-server-system-production.up.railway.app/api';
+  const transactionsPerPage = 10;
 
   useEffect(() => {
     fetchDashboardData();
@@ -47,23 +51,7 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
-      
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        return;
-      }
-
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      };
-
-      console.log('🔍 Fetching dashboard data...', {
-        dateRange,
-        API_BASE_URL,
-        hasToken: !!token
-      });
+      console.log('🔍 Fetching dashboard data...', { dateRange });
 
       // Build query parameters for date range
       const params = new URLSearchParams();
@@ -73,74 +61,50 @@ const Dashboard = () => {
       }
 
       // Fetch all dashboard data in parallel with date range filters
-      const [statsRes, activityLogsRes, performanceRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/admin/dashboard/statistics?${params}`, { headers }),
-        fetch(`${API_BASE_URL}/activity-logs/recent?limit=100`, { headers }), // Increased limit for pagination
-        fetch(`${API_BASE_URL}/admin/dashboard/performance?${params}`, { headers })
+      const [statsRes, activityLogsRes, performanceRes, transactionsRes] = await Promise.all([
+        api.get(`/admin/dashboard/statistics?${params}`),
+        api.get('/activity-logs/recent?limit=100'),
+        api.get(`/admin/dashboard/performance?${params}`),
+        api.get('/admin/appointments')
       ]);
 
-      console.log('📊 API Responses:', {
-        statistics: statsRes.status,
-        activityLogs: activityLogsRes.status,
-        performance: performanceRes.status
-      });
+      console.log('📊 API Responses received');
 
       // Handle statistics response
-      if (statsRes.ok) {
-        const statsText = await statsRes.text();
-        console.log('📄 Raw statistics response:', statsText);
-        
-        try {
-          const statsData = JSON.parse(statsText);
-          console.log('✅ Parsed statistics data:', statsData);
-          
-          if (statsData && statsData.statistics) {
-            setStatistics(statsData.statistics);
-            console.log('📊 Statistics set successfully:', statsData.statistics);
-          } else {
-            console.error('❌ No statistics in response:', statsData);
-            toast.error('Invalid statistics data received');
-          }
-        } catch (parseError) {
-          console.error('❌ Failed to parse statistics JSON:', parseError);
-          toast.error('Invalid statistics response format');
-        }
+      if (statsRes.data && statsRes.data.statistics) {
+        setStatistics(statsRes.data.statistics);
+        console.log('📊 Statistics set successfully');
       } else {
-        const errorData = await statsRes.json().catch(() => ({}));
-        console.error('❌ Statistics failed:', statsRes.status, errorData);
-        toast.error(`Failed to load statistics: ${errorData.message || statsRes.statusText}`);
+        console.error('❌ No statistics in response');
+        toast.error('Invalid statistics data received');
       }
 
       // Handle activity logs response
-      if (activityLogsRes.ok) {
-        const activityData = await activityLogsRes.json();
-        console.log('✅ Activity logs data:', activityData);
-        setActivityLogs(activityData.logs || []);
-      } else {
-        const errorData = await activityLogsRes.json().catch(() => ({}));
-        console.error('❌ Activity logs failed:', activityLogsRes.status, errorData);
+      if (activityLogsRes.data && activityLogsRes.data.logs) {
+        setActivityLogs(activityLogsRes.data.logs);
+        console.log('✅ Activity logs loaded');
       }
 
       // Handle performance response
-      if (performanceRes.ok) {
-        const performanceResData = await performanceRes.json();
-        console.log('✅ Performance data:', performanceResData);
-        setPerformanceData(performanceResData.performance);
-      } else {
-        const errorData = await performanceRes.json().catch(() => ({}));
-        console.error('❌ Performance failed:', performanceRes.status, errorData);
+      if (performanceRes.data && performanceRes.data.performance) {
+        setPerformanceData(performanceRes.data.performance);
+        console.log('✅ Performance data loaded');
       }
 
-      // Check for 401 Unauthorized
-      if (statsRes.status === 401 || activityLogsRes.status === 401 || performanceRes.status === 401) {
-        toast.error('Session expired. Please log in again.');
-        localStorage.removeItem('admin_token');
-        localStorage.removeItem('token');
+      // Handle transactions response
+      if (transactionsRes.data && transactionsRes.data.transactions) {
+        setServiceTransactions(transactionsRes.data.transactions);
+        console.log('✅ Service transactions loaded');
       }
 
     } catch (error) {
-      console.error('❌ Error fetching dashboard data:', error);
-      toast.error(`Failed to load dashboard data: ${error.message}`);
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        navigate('/login');
+      } else {
+        console.error('❌ Error fetching dashboard data:', error);
+        toast.error(`Failed to load dashboard data: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -275,6 +239,25 @@ const stats = statistics ? [
   // Calculate max value for progress bars
   const maxPerformanceValue = Math.max(...performanceData.map(p => p.value), 1);
 
+  // Get total for percentage calculation
+  const totalPerformance = performanceData.reduce((sum, item) => sum + item.value, 0);
+
+  // Filter service transactions
+  const filteredServiceTransactions = serviceTransactions.filter((txn) => {
+    const purposeMatch = serviceFilter === 'all' || txn.purpose?.name === serviceFilter;
+    const statusMatch = statusFilter === 'all' || txn.status === statusFilter;
+    return purposeMatch && statusMatch;
+  });
+
+  // Pagination for service transactions
+  const transactionsTotalPages = Math.ceil(filteredServiceTransactions.length / transactionsPerPage);
+  const transactionsStartIndex = (transactionsPage - 1) * transactionsPerPage;
+  const transactionsEndIndex = transactionsStartIndex + transactionsPerPage;
+  const paginatedServiceTransactions = filteredServiceTransactions.slice(transactionsStartIndex, transactionsEndIndex);
+
+  // Get unique purposes for filter
+  const uniquePurposes = [...new Set(serviceTransactions.map(t => t.purpose?.name).filter(Boolean))];
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full">
@@ -291,6 +274,67 @@ const stats = statistics ? [
                 <span className="text-sm text-gray-500">({formatDateRange()})</span>
               </div>
             </div>
+
+            {/* Performance Summary - Card Grid with Colored Borders */}
+            <Card className="bg-white border-0 shadow-sm mb-6">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">Performance Summary</CardTitle>
+                <CardDescription>Transaction statistics by purpose</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {loading ? (
+                    <div className="col-span-full flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : performanceWithColors.length === 0 ? (
+                    <div className="col-span-full text-center py-8 text-gray-500">
+                      No performance data
+                    </div>
+                  ) : (
+                    performanceWithColors.map((item, index) => {
+                      const percentage = totalPerformance > 0 ? ((item.value / totalPerformance) * 100).toFixed(1) : 0;
+                      const borderColors = [
+                        'border-l-emerald-500',
+                        'border-l-lime-500', 
+                        'border-l-yellow-500',
+                        'border-l-green-500',
+                        'border-l-pink-500',
+                        'border-l-blue-500',
+                        'border-l-purple-500',
+                        'border-l-orange-500'
+                      ];
+                      const borderColor = borderColors[index % borderColors.length];
+                      
+                      return (
+                        <div
+                          key={index}
+                          onClick={() => navigate(`/transactions-by-purpose/${encodeURIComponent(item.label)}`)}
+                          className={`bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-lg transition-all border-l-4 ${borderColor}`}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <RefreshCw className="w-4 h-4 text-gray-500" />
+                              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                                {item.label}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mb-2">
+                            <div className="text-sm text-gray-600 mb-1">
+                              {item.value} {item.value === 1 ? 'Transaction' : 'Transactions'}
+                            </div>
+                            <div className="text-xs text-green-600 font-semibold">
+                              {percentage}% of total
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -353,129 +397,206 @@ const stats = statistics ? [
               )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Recent Transactions */}
-              <div className="lg:col-span-3">
-                <Card className="bg-white border-0 shadow-sm">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg font-semibold">
-                          Activity Logs
-                        </CardTitle>
-                        <CardDescription>Recent Activity</CardDescription>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-green-600 hover:text-green-700"
-                        onClick={() => navigate('/Activity')}
-                      >
-                        View All
-                      </Button>
+            <div className="grid grid-cols-1 gap-6">
+              {/* Activity Logs */}
+              <Card className="bg-white border-0 shadow-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg font-semibold">
+                        Activity Logs
+                      </CardTitle>
+                      <CardDescription>Recent Activity</CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date & Time</TableHead>
-                          <TableHead>Action</TableHead>
-                          <TableHead>Module</TableHead>
-                          <TableHead>Description</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {loading ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8">
-                              <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
-                            </TableCell>
-                          </TableRow>
-                        ) : activityLogs.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                              No recent activity logs
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          paginatedActivityLogs.map((log, index) => (
-                            <TableRow key={log.id || index}>
-                              <TableCell className="text-sm">
-                                {new Date(log.created_at).toLocaleString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className={`${getActionColor(log.action)}`}>
-                                  {log.action.replace('_', ' ').toUpperCase()}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="font-medium">{log.module || 'System'}</TableCell>
-                              <TableCell className="text-sm text-gray-600">{log.description || '-'}</TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                    
-                    {/* Pagination */}
-                    {!loading && activityLogs.length > 0 && (
-                      <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Performance Summary */}
-              <div className="lg:col-span-1 left">
-                <Card className="bg-gradient-to-br from-[#15592F] to-[#0d3d20] text-white h-full">
-                  <CardHeader>
-                    <CardTitle className="text-white text-[14px]">
-                      Performance Summary
-                    </CardTitle>
-                    <CardDescription className="text-green-100 text-[14px]">
-                      Top purposes for selected period
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-green-600 hover:text-green-700"
+                      onClick={() => navigate('/Activity')}
+                    >
+                      View All
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date & Time</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Module</TableHead>
+                        <TableHead>Description</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {loading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin text-green-100" />
-                        </div>
-                      ) : performanceWithColors.length === 0 ? (
-                        <div className="text-center py-8 text-green-100">
-                          No performance data
-                        </div>
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8">
+                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+                          </TableCell>
+                        </TableRow>
+                      ) : activityLogs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                            No recent activity logs
+                          </TableCell>
+                        </TableRow>
                       ) : (
-                        performanceWithColors.map((item, index) => (
-                          <div key={index} className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-green-100">{item.label}</span>
-                              <span className="text-sm font-semibold text-white">{item.value}</span>
-                            </div>
-                            <div className="h-2 bg-green-900/40 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full bg-gradient-to-r ${item.color} transition-all duration-500`}
-                                style={{ width: `${(item.value / maxPerformanceValue) * 100}%` }}
-                              />
-                            </div>
-                          </div>
+                        paginatedActivityLogs.map((log, index) => (
+                          <TableRow key={log.id || index}>
+                            <TableCell className="text-sm">
+                              {new Date(log.created_at).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`${getActionColor(log.action)}`}>
+                                {log.action.replace('_', ' ').toUpperCase()}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">{log.module || 'System'}</TableCell>
+                            <TableCell className="text-sm text-gray-600">{log.description || '-'}</TableCell>
+                          </TableRow>
                         ))
                       )}
+                    </TableBody>
+                  </Table>
+                  
+                  {/* Pagination */}
+                  {!loading && activityLogs.length > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Transactions by Service Table */}
+              <Card className="bg-white border-0 shadow-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg font-semibold">
+                        Transactions by Service
+                      </CardTitle>
+                      <CardDescription>Complete transaction details</CardDescription>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    <div className="flex gap-2">
+                      <select
+                        value={serviceFilter}
+                        onChange={(e) => {
+                          setServiceFilter(e.target.value);
+                          setTransactionsPage(1);
+                        }}
+                        className="px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                      >
+                        <option value="all">All Services</option>
+                        {uniquePurposes.map((purpose) => (
+                          <option key={purpose} value={purpose}>
+                            {purpose}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => {
+                          setStatusFilter(e.target.value);
+                          setTransactionsPage(1);
+                        }}
+                        className="px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                      >
+                        <option value="all">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="completed">Completed</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date of Filing</TableHead>
+                        <TableHead>Appointment Date</TableHead>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Student ID</TableHead>
+                        <TableHead>Purpose</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+                          </TableCell>
+                        </TableRow>
+                      ) : paginatedServiceTransactions.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                            No transactions found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paginatedServiceTransactions.map((txn) => {
+                          const masterlist = txn.user?.masterlist;
+                          const studentName = masterlist ? `${masterlist.fname} ${masterlist.lname}` : 'N/A';
+                          return (
+                            <TableRow key={txn.id}>
+                              <TableCell className="text-sm">
+                                {new Date(txn.date_requested || txn.created_at).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {new Date(txn.schedule_date).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </TableCell>
+                              <TableCell className="font-medium">{studentName}</TableCell>
+                              <TableCell>{txn.user?.student_id || 'N/A'}</TableCell>
+                              <TableCell>{txn.purpose?.name || 'N/A'}</TableCell>
+                              <TableCell>
+                                <Badge className={txn.request_type === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}>
+                                  {txn.request_type === 'online' ? 'Online' : 'Walk-in'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={getStatusColor(txn.status)}>
+                                  {txn.status?.charAt(0).toUpperCase() + txn.status?.slice(1)}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                  
+                  {/* Pagination */}
+                  {!loading && filteredServiceTransactions.length > 0 && (
+                    <Pagination
+                      currentPage={transactionsPage}
+                      totalPages={transactionsTotalPages}
+                      onPageChange={setTransactionsPage}
+                    />
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </main>

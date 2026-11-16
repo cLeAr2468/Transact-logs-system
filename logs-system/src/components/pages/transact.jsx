@@ -14,6 +14,12 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/Asidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import {
   Search,
@@ -25,17 +31,14 @@ import {
   X,
   Loader2,
   Filter,
+  MoreVertical,
+  Eye,
 } from "lucide-react";
 
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import api from "@/api";
+import RejectDialog from "@/components/modals/reject-dialog";
 
 const Transaction = () => {
   const navigate = useNavigate();
@@ -44,10 +47,21 @@ const Transaction = () => {
   const [actionLoading, setActionLoading] = useState(null); // Track which button is loading
 
   // ✅ FILTER & SEARCH STATE
-  const [filter, setFilter] = useState("Pending");
+  const [filter, setFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [purposeFilter, setPurposeFilter] = useState("All Purposes");
   const [purposes, setPurposes] = useState([]);
+  
+  // Date range filter state
+  const [dateRange, setDateRange] = useState({
+    start: '',
+    end: ''
+  });
+  
+  // Reject dialog state
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedTransactionId, setSelectedTransactionId] = useState(null);
+  const [selectedTransactionEmail, setSelectedTransactionEmail] = useState("");
 
   // Fetch transactions from backend
   useEffect(() => {
@@ -57,24 +71,8 @@ const Transaction = () => {
 
   const fetchPurposes = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
-      
-      if (!token) {
-        return;
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/purposes`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPurposes(data.purposes || []);
-      }
+      const response = await api.get('/purposes');
+      setPurposes(response.data.purposes || []);
     } catch (error) {
       console.error('Fetch purposes error:', error);
     }
@@ -83,100 +81,60 @@ const Transaction = () => {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      
-      if (!token) {
-        toast.error('You are not logged in. Please login first.');
-        navigate('/login');
-        return;
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/appointments`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.status === 401) {
+      const response = await api.get('/admin/appointments');
+      setTransactions(response.data.transactions || []);
+    } catch (error) {
+      if (error.response?.status === 401) {
         toast.error('Session expired. Please login again.');
         navigate('/login');
-        return;
-      }
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setTransactions(data.transactions || []);
       } else {
-        toast.error(data.message || 'Failed to fetch transactions');
+        console.error('Fetch error:', error);
+        toast.error('Failed to load transactions. Please try again.');
       }
-    } catch (error) {
-      console.error('Fetch error:', error);
-      toast.error('Failed to load transactions. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   // Handle status update
-  const handleStatusUpdate = async (transactionId, newStatus) => {
+  const handleStatusUpdate = async (transactionId, newStatus, reason = null) => {
     setActionLoading(transactionId);
     
     const transaction = transactions.find(t => t.id === transactionId);
     const userEmail = transaction?.user?.email || 'student';
     
     try {
-      const token = localStorage.getItem('admin_token');
+      const payload = { status: newStatus };
+      if (reason) {
+        payload.rejection_reason = reason;
+      }
       
-      if (!token) {
-        toast.error('You are not logged in. Please login first.');
-        navigate('/login');
-        return;
+      const response = await api.put(`/admin/appointments/${transactionId}/status`, payload);
+
+      switch (newStatus) {
+        case 'approved':
+          toast.success(`✅ Appointment Approved! Email sent to ${userEmail}`);
+          break;
+        case 'rejected':
+          toast.success(` Appointment Rejected. Email sent to ${userEmail}`);
+          break;
+        case 'completed':
+          toast.success(` Appointment Completed! Email sent to ${userEmail}`);
+          break;
+        default:
+          toast.success(response.data?.message || 'Status updated successfully!');
       }
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/appointments/${transactionId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        switch (newStatus) {
-          case 'approved':
-            toast.success(`✅ Appointment Approved! Email sent to ${userEmail}`);
-            break;
-          case 'rejected':
-            toast.success(`❌ Appointment Rejected. Email sent to ${userEmail}`);
-            break;
-          case 'completed':
-            toast.success(`🎉 Appointment Completed! Email sent to ${userEmail}`);
-            break;
-          default:
-            toast.success(data?.message || 'Status updated successfully!');
-        }
-        
-        await fetchTransactions();
-        
-      } else {
-        if (response.status === 401) {
-          toast.error('Session expired. Please log in again.');
-          localStorage.removeItem('admin_token');
-          navigate('/login');
-        } else {
-          toast.error(data?.message || 'Failed to update transaction status');
-        }
-      }
+      
+      await fetchTransactions();
       
     } catch (error) {
-      console.error('Status update error:', error);
-      toast.error('Failed to update transaction. Please try again.');
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        navigate('/login');
+      } else {
+        console.error('Status update error:', error);
+        toast.error(error.response?.data?.message || 'Failed to update transaction. Please try again.');
+      }
     } finally {
       setActionLoading(null);
     }
@@ -221,39 +179,14 @@ const Transaction = () => {
 
   // Handle reject
   const handleReject = (transactionId) => {
-    // Find the transaction to get user email
     const transaction = transactions.find(t => t.id === transactionId);
-    const userEmail = transaction?.user?.email || 'the student';
-    
-    toast.warning(
-      <div>
-        <p className="font-semibold">Reject this appointment?</p>
-        <p className="text-sm">📧 An email notification will be sent to:</p>
-        <p className="text-sm font-medium text-red-700">{userEmail}</p>
-        <div className="flex gap-2 mt-3">
-          <button
-            onClick={() => {
-              confirmReject(transactionId);
-              toast.dismiss();
-            }}
-            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-          >
-            Reject & Send Email
-          </button>
-          <button
-            onClick={() => toast.dismiss()}
-            className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>,
-      { duration: 10000 }
-    );
+    setSelectedTransactionId(transactionId);
+    setSelectedTransactionEmail(transaction?.user?.email || 'the student');
+    setRejectDialogOpen(true);
   };
 
-  const confirmReject = (transactionId) => {
-    handleStatusUpdate(transactionId, 'rejected');
+  const confirmReject = async (reason) => {
+    await handleStatusUpdate(selectedTransactionId, 'rejected', reason);
   };
 
   // Handle complete
@@ -307,42 +240,45 @@ const Transaction = () => {
 
   // ✅ COMBINED FILTER & SEARCH LOGIC
   const filteredTransactions = transactions.filter((item) => {
-    // FIRST: Filter out rejected and cancelled transactions completely
-    if (item.status === 'rejected' || item.status === 'cancelled') {
-      return false;
-    }
-
     // Map backend status to frontend display status
     const displayStatus = item.status === 'approved' ? 'Approved' : 
                          item.status === 'pending' ? 'Pending' :
-                         item.status === 'completed' ? 'Completed' : item.status;
+                         item.status === 'completed' ? 'Completed' :
+                         item.status === 'rejected' ? 'Rejected' :
+                         item.status === 'cancelled' ? 'Cancelled' : item.status;
 
-    // Only show Pending, Approved, and Completed
-    if (displayStatus !== 'Pending' && displayStatus !== 'Approved' && displayStatus !== 'Completed') {
-      return false;
+    // Filter by status - "All" shows everything
+    const statusMatch = filter === "All" || displayStatus === filter;
+    
+    // Purpose filter (Pure Relationship)
+    const purposeMatch = purposeFilter === "All Purposes" || item.purpose?.name === purposeFilter;
+
+    // Date range filter
+    let dateMatch = true;
+    if (dateRange.start && dateRange.end) {
+      const transactionDate = new Date(item.date_requested || item.created_at);
+      const startDate = new Date(dateRange.start);
+      const endDate = new Date(dateRange.end);
+      endDate.setHours(23, 59, 59, 999); // Include the entire end date
+      dateMatch = transactionDate >= startDate && transactionDate <= endDate;
     }
 
-    // Filter by status (no "All" option)
-    const statusMatch = displayStatus === filter;
-    
-    // Purpose filter
-    const purposeMatch = purposeFilter === "All Purposes" || item.purpose === purposeFilter;
+    // Get student name from user.masterlist object
+    const masterlist = item.user?.masterlist;
+    const studentName = masterlist ? `${masterlist.fname} ${masterlist.lname}` : '';
+    const studentCourse = masterlist?.course || '';
+    const address = `${item.brgy || item.user?.barangay || ''}, ${item.municipality || item.user?.municipality || ''}`;
 
-    // Get student name from user object
-    const studentName = item.user ? `${item.user.fname} ${item.user.lname}` : '';
-    const studentCourse = item.user?.course || '';
-    const address = `${item.brgy}, ${item.municipality}, ${item.province}`;
-
-    // Search by query (searches in multiple fields)
+    // Search by query (searches in multiple fields) - Pure Relationship
     const searchMatch = searchQuery === "" || 
       studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.purpose.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.purpose?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       address.toLowerCase().includes(searchQuery.toLowerCase()) ||
       studentCourse.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.schedule_date?.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Return true only if all conditions are met
-    return statusMatch && searchMatch && purposeMatch;
+    return statusMatch && searchMatch && purposeMatch && dateMatch;
   });
 
   // STATUS COLORS
@@ -464,68 +400,71 @@ const Transaction = () => {
             <Card className="border-0 shadow-sm rounded-2xl">
               <CardContent className="p-6">
 
-                {/* TITLE + FILTER BUTTONS */}
+                {/* TITLE + FILTER DROPDOWN */}
                 <div className="flex flex-col gap-4 mb-6">
                   <h2 className="text-2xl font-semibold text-[#15592F]">
                     Transaction Records
                   </h2>
 
                   <div className="flex gap-3 flex-wrap items-center">
-                    <div className="flex gap-2">
-                      <Button
-                        variant={filter === "Pending" ? "default" : "outline"}
-                        onClick={() => setFilter("Pending")}
-                        className={
-                          filter === "Pending"
-                            ? "bg-red-600 hover:bg-red-700 text-white"
-                            : ""
-                        }
-                      >
-                        Pending
-                      </Button>
+                    {/* Date Range Filter */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-gray-700">From:</label>
+                      <input
+                        type="date"
+                        value={dateRange.start}
+                        onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                        className="h-10 px-3 border border-gray-200 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#15592F] focus:border-transparent"
+                      />
+                      <label className="text-sm font-medium text-gray-700">To:</label>
+                      <input
+                        type="date"
+                        value={dateRange.end}
+                        onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                        className="h-10 px-3 border border-gray-200 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#15592F] focus:border-transparent"
+                      />
+                      {(dateRange.start || dateRange.end) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDateRange({ start: '', end: '' })}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
 
-                      <Button
-                        variant={filter === "Approved" ? "default" : "outline"}
-                        onClick={() => setFilter("Approved")}
-                        className={
-                          filter === "Approved"
-                            ? "bg-blue-600 hover:bg-blue-700 text-white"
-                            : ""
-                        }
+                    {/* Status Filter Dropdown */}
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-gray-500" />
+                      <select
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        className="w-[180px] h-10 px-3 border border-gray-200 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#15592F] focus:border-transparent"
                       >
-                        Approved
-                      </Button>
-
-                      <Button
-                        variant={filter === "Completed" ? "default" : "outline"}
-                        onClick={() => setFilter("Completed")}
-                        className={
-                          filter === "Completed"
-                            ? "bg-green-600 hover:bg-green-700 text-white"
-                            : ""
-                        }
-                      >
-                        Completed
-                      </Button>
+                        <option value="All">All Transactions</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
                     </div>
                     
                     {/* Purpose Filter Dropdown */}
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-4 w-4 text-gray-500" />
-                      <Select value={purposeFilter} onValueChange={setPurposeFilter}>
-                        <SelectTrigger className="w-[220px] h-10">
-                          <SelectValue placeholder="Filter by purpose" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="All Purposes">All Purposes</SelectItem>
-                          {purposes.map((purpose) => (
-                            <SelectItem key={purpose.id} value={purpose.name}>
-                              {purpose.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <select
+                      value={purposeFilter}
+                      onChange={(e) => setPurposeFilter(e.target.value)}
+                      className="w-[220px] h-10 px-3 border border-gray-200 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#15592F] focus:border-transparent"
+                    >
+                      <option value="All Purposes">All Purposes</option>
+                      {purposes.map((purpose) => (
+                        <option key={purpose.id} value={purpose.name}>
+                          {purpose.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -534,37 +473,39 @@ const Transaction = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date</TableHead>
+                        <TableHead>Date Requested</TableHead>
+                        <TableHead>Appointment Date</TableHead>
                         <TableHead>Time Slot</TableHead>
                         <TableHead>Student</TableHead>
                         <TableHead>Purpose</TableHead>
                         <TableHead>Address</TableHead>
                         <TableHead>Course</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Status</TableHead>
-                        {filter !== "Completed" && (
-                          <TableHead>Actions</TableHead>
-                        )}
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
 
                     <TableBody>
                       {loading ? (
                         <TableRow>
-                          <TableCell colSpan={filter !== "Completed" ? 8 : 7} className="text-center py-8">
+                          <TableCell colSpan={10} className="text-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
                             <p className="text-gray-500 mt-2">Loading transactions...</p>
                           </TableCell>
                         </TableRow>
                       ) : filteredTransactions.length > 0 ? (
                         filteredTransactions.map((item) => {
-                          const studentName = item.user ? `${item.user.fname} ${item.user.lname}` : 'N/A';
-                          const address = `${item.brgy}, ${item.municipality}`;
-                          const course = item.user?.course || 'N/A';
+                          const masterlist = item.user?.masterlist;
+                          const studentName = masterlist ? `${masterlist.fname} ${masterlist.lname}` : 'N/A';
+                          const address = `${item.brgy || item.user?.barangay || ''}, ${item.municipality || item.user?.municipality || ''}`;
+                          const course = masterlist?.course || 'N/A';
                           const displayStatus = getDisplayStatus(item.status);
                           const timeSlot = item.time_slot || 'N/A';
 
                           return (
                             <TableRow key={item.id}>
+                              <TableCell>{formatDate(item.date_requested || item.created_at)}</TableCell>
                               <TableCell>{formatDate(item.schedule_date)}</TableCell>
                               <TableCell className="text-sm font-medium text-gray-700">
                                 {timeSlot}
@@ -572,89 +513,85 @@ const Transaction = () => {
                               <TableCell className="font-medium">
                                 {studentName}
                               </TableCell>
-                              <TableCell>{item.purpose}</TableCell>
+                              <TableCell>{item.purpose?.name || 'N/A'}</TableCell>
                               <TableCell>{address}</TableCell>
                               <TableCell>{course}</TableCell>
+                              <TableCell>
+                                <Badge className={item.request_type === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}>
+                                  {item.request_type === 'online' ? 'Online' : 'Walk-in'}
+                                </Badge>
+                              </TableCell>
                               <TableCell>
                                 <Badge className={getStatusColor(displayStatus)}>
                                   {displayStatus}
                                 </Badge>
                               </TableCell>
-                              {filter !== "Completed" && (
-                                <TableCell>
-                                  {/* Show actions only for pending and approved status */}
-                                  {(item.status === 'pending' || item.status === 'approved') && (
-                                    <div className="flex gap-2">
-                                      {/* Pending status: Show Approve and Reject buttons */}
-                                      {item.status === 'pending' && (
-                                        <>
-                                          <Button
-                                            size="sm"
-                                            onClick={() => handleApprove(item.id)}
-                                            disabled={actionLoading === item.id}
-                                            className="bg-green-600 hover:bg-green-700 text-white h-8"
-                                          >
-                                            {actionLoading === item.id ? (
-                                              <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : (
-                                              <>
-                                                <Check className="h-3 w-3 mr-1" />
-                                                Approve
-                                              </>
-                                            )}
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            onClick={() => handleReject(item.id)}
-                                            disabled={actionLoading === item.id}
-                                            className="h-8"
-                                          >
-                                            {actionLoading === item.id ? (
-                                              <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : (
-                                              <>
-                                                <X className="h-3 w-3 mr-1" />
-                                                Reject
-                                              </>
-                                            )}
-                                          </Button>
-                                        </>
-                                      )}
-
-                                      {/* Approved status: Show Complete button */}
-                                      {item.status === 'approved' && (
-                                        <Button
-                                          size="sm"
-                                          onClick={() => handleComplete(item.id)}
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem asChild>
+                                      <Link
+                                        to={`/transact/${item.id}`}
+                                        className="flex items-center cursor-pointer"
+                                      >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        View Details
+                                      </Link>
+                                    </DropdownMenuItem>
+                                    
+                                    {/* Show actions based on status */}
+                                    {item.status === 'pending' && (
+                                      <>
+                                        <DropdownMenuItem
+                                          onClick={() => handleApprove(item.id)}
                                           disabled={actionLoading === item.id}
-                                          className="bg-blue-600 hover:bg-blue-700 text-white h-8"
+                                          className="cursor-pointer text-green-600"
                                         >
-                                          {actionLoading === item.id ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <>
-                                              <Check className="h-3 w-3 mr-1" />
-                                              Complete
-                                            </>
-                                          )}
-                                        </Button>
-                                      )}
-                                    </div>
-                                  )}
-                                </TableCell>
-                              )}
+                                          <Check className="h-4 w-4 mr-2" />
+                                          Approve
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleReject(item.id)}
+                                          disabled={actionLoading === item.id}
+                                          className="cursor-pointer text-red-600"
+                                        >
+                                          <X className="h-4 w-4 mr-2" />
+                                          Reject
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                    
+                                    {item.status === 'approved' && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleComplete(item.id)}
+                                        disabled={actionLoading === item.id}
+                                        className="cursor-pointer text-blue-600"
+                                      >
+                                        <Check className="h-4 w-4 mr-2" />
+                                        Mark Complete
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
                             </TableRow>
                           );
                         })
                       ) : (
                         <TableRow>
                           <TableCell
-                            colSpan={filter !== "Completed" ? 8 : 7}
+                            colSpan={10}
                             className="text-center py-8 text-gray-500"
                           >
                             {searchQuery
-                              ? `No transactions found matching "${searchQuery}" in ${filter} status.`
+                              ? `No transactions found matching "${searchQuery}".`
+                              : filter === "All"
+                              ? "No transactions found."
                               : `No ${filter} transactions found.`}
                           </TableCell>
                         </TableRow>
@@ -669,6 +606,14 @@ const Transaction = () => {
           </div>
         </main>
       </div>
+      
+      {/* Reject Dialog */}
+      <RejectDialog
+        open={rejectDialogOpen}
+        onOpenChange={setRejectDialogOpen}
+        onConfirm={confirmReject}
+        studentEmail={selectedTransactionEmail}
+      />
     </SidebarProvider>
   );
 };

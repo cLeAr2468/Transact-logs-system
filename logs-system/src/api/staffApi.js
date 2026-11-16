@@ -109,6 +109,21 @@ export const deleteStaff = async (staffId) => {
   }
 };
 
+/**
+ * Update staff status
+ * @param {number} staffId - Staff ID
+ * @param {string} status - New status (Active/Inactive)
+ * @returns {Promise} API response
+ */
+export const updateStaffStatus = async (staffId, status) => {
+  try {
+    const response = await api.put(`/staff/${staffId}/status`, { status });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to update status' };
+  }
+};
+
 export default {
   registerStaff,
   staffLogin,
@@ -117,4 +132,5 @@ export default {
   getStaff,
   updateStaff,
   deleteStaff,
+  updateStaffStatus,
 };
