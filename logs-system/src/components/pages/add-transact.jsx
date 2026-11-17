@@ -40,6 +40,7 @@ export default function TransactionForm() {
   const [serverTime, setServerTime] = useState(null);
   const [isMorningPast, setIsMorningPast] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('morning');
+  const [pastTimeSlots, setPastTimeSlots] = useState([]);
 
   // Fetch purposes on component mount
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function TransactionForm() {
       const response = await api.get(url);
       const data = response.data;
       
-      console.log('Slot data received:', data);
+      console.log('📊 Slot data received:', data);
       console.log('Server time:', data.server_time);
       
       // Store server time and check if morning is past
@@ -95,8 +96,9 @@ export default function TransactionForm() {
         setServerTime(data.server_time);
         const serverDate = new Date(data.server_time);
         const serverHour = serverDate.getHours();
+        const serverMinute = serverDate.getMinutes();
         
-        // Check if selected date is today AND current time is >= 12:00 PM
+        // Check if selected date is today
         const selectedDate = new Date(scheduleDate + 'T00:00:00');
         const todayDate = new Date(data.server_time);
         todayDate.setHours(0, 0, 0, 0);
@@ -105,7 +107,53 @@ export default function TransactionForm() {
         const isToday = selectedDate.getTime() === todayDate.getTime();
         const isPastNoon = serverHour >= 12;
         
+        console.log('🔍 Date check:', {
+          isToday,
+          isPastNoon,
+          selectedDate: scheduleDate,
+          selectedDateTime: selectedDate.getTime(),
+          todayDateTime: todayDate.getTime(),
+          serverHour,
+          serverMinute
+        });
+        
         setIsMorningPast(isToday && isPastNoon);
+        
+        // Calculate which specific time slots are past - ONLY FOR TODAY
+        const pastSlots = [];
+        if (isToday) {
+          // Convert time slots to 24-hour format and compare
+          const allTimeSlots = [...morningTimes, ...afternoonTimes];
+          allTimeSlots.forEach(slot => {
+            const [time, period] = slot.split(' ');
+            const [hours, minutes] = time.split(':').map(Number);
+            
+            // Convert to 24-hour format
+            let slot24Hour = hours;
+            if (period === 'PM' && hours !== 12) {
+              slot24Hour = hours + 12;
+            } else if (period === 'AM' && hours === 12) {
+              slot24Hour = 0;
+            }
+            
+            // Check if this slot time has passed
+            if (slot24Hour < serverHour || (slot24Hour === serverHour && minutes <= serverMinute)) {
+              pastSlots.push(slot);
+            }
+          });
+          
+          console.log('⏰ Past time slots (TODAY only):', pastSlots);
+          setPastTimeSlots(pastSlots);
+          
+          // Clear selected time slot if it's now in the past
+          if (selectedTime && pastSlots.includes(selectedTime)) {
+            setSelectedTime('');
+            toast.warning('The selected time slot has passed. Please choose another slot.');
+          }
+        } else {
+          console.log('✅ Future date selected - all time slots available');
+          setPastTimeSlots([]);
+        }
         
         // If morning is past and morning is selected, switch to afternoon
         if (isToday && isPastNoon && selectedPeriod === 'morning') {
@@ -143,6 +191,10 @@ export default function TransactionForm() {
   };
 
   const isSlotAvailable = (timeSlot) => {
+    // Check if slot is in the past
+    if (pastTimeSlots.includes(timeSlot)) {
+      return false;
+    }
     const available = !fullSlots.includes(timeSlot);
     // console.log(`Slot ${timeSlot} available:`, available, 'Full slots:', fullSlots);
     return available;
@@ -562,6 +614,12 @@ export default function TransactionForm() {
                           const slotInfo = getSlotInfo(time);
                           const isAvailable = isSlotAvailable(time);
                           const isSelected = selectedTime === time;
+                          const isPast = pastTimeSlots.includes(time);
+                          
+                          // Don't render past time slots
+                          if (isPast) {
+                            return null;
+                          }
                           
                           return (
                             <button
@@ -615,6 +673,12 @@ export default function TransactionForm() {
                         const slotInfo = getSlotInfo(time);
                         const isAvailable = isSlotAvailable(time);
                         const isSelected = selectedTime === time;
+                        const isPast = pastTimeSlots.includes(time);
+                        
+                        // Don't render past time slots
+                        if (isPast) {
+                          return null;
+                        }
                         
                         return (
                           <button

@@ -949,9 +949,10 @@ export default function Reports() {
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Student Name</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Student ID</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Transaction Purpose</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Appointment Date</th>
                         <th className="text-center py-3 px-4 font-semibold text-gray-700">Rating</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Feedback</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Date Requested</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -974,6 +975,15 @@ export default function Reports() {
                           // Use purpose relationship
                           const transactionPurpose = feedback.purpose?.name || feedback.transaction?.purpose?.name || 'N/A';
                           
+                          // Get appointment date from transaction
+                          const appointmentDate = feedback.transaction?.schedule_date 
+                            ? new Date(feedback.transaction.schedule_date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })
+                            : 'N/A';
+                          
                           return (
                             <tr
                               key={feedback.id || index}
@@ -991,6 +1001,9 @@ export default function Reports() {
                                 <div className="text-sm text-gray-900 font-medium">
                                   {transactionPurpose}
                                 </div>
+                              </td>
+                              <td className="py-4 px-4 text-sm text-gray-600">
+                                {appointmentDate}
                               </td>
                               <td className="py-4 px-4">
                                 <div className="flex items-center justify-center gap-1">
