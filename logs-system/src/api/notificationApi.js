@@ -1,10 +1,12 @@
 import axios from 'axios';
 
 /**
- * Notification API Module
+ * Notification API Module - v2.0
  * Automatically detects environment and connects to the correct backend
  * - Production (pages.dev): Railway backend
  * - Development (localhost): Local backend
+ * 
+ * Last updated: 2026-11-17
  */
 
 // Automatically detect environment and use correct API URL

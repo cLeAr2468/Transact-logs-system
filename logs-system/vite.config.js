@@ -14,5 +14,13 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: false,
+    // Force cache busting with content hash in filenames
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
+      }
+    }
   },
 })
