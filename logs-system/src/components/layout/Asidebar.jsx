@@ -15,6 +15,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { clearSession } from "@/utils/session";
+import { getNotifications } from "@/api/notificationApi";
 
 import {
   LayoutDashboard,
@@ -110,26 +111,16 @@ export function AppSidebar() {
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const token = localStorage.getItem('admin_token');
-        if (!token) return;
-        
-        const response = await fetch('http://localhost:8000/api/notifications', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setUnreadCount(data.unread_count || 0);
-        }
+        const data = await getNotifications(1, 1); // Just get first item to check count
+        setUnreadCount(data.unread_count || 0);
       } catch (error) {
         console.error('Error fetching unread count:', error);
+        setUnreadCount(0);
       }
     };
 
     fetchUnreadCount();
+    // Poll every 30 seconds
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);

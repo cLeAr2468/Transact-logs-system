@@ -1,6 +1,6 @@
 // Force cache clear on page load
 (function() {
-  const CACHE_VERSION = 'v2.0.20261117';
+  const CACHE_VERSION = 'v2.1.20261117'; // Updated - fixed sidebar notification count
   const currentVersion = localStorage.getItem('app_cache_version');
   
   console.log('🔍 Checking cache version...');
