@@ -2,25 +2,24 @@ import axios from "axios";
 
 // Automatically detect environment and use correct API URL
 const getApiUrl = () => {
-  // If VITE_API_URL is set, use it (for production builds)
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  // Auto-detect based on current domain
   const currentHost = window.location.hostname;
+  const envApiUrl = import.meta.env.VITE_API_URL;
   
-  // If running on localhost, use local backend
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return 'http://127.0.0.1:8000/api';
-  }
-  
-  // If running on Cloudflare Pages, use Railway backend
+  // If running on production domain (Cloudflare Pages), always use Railway backend
   if (currentHost.includes('pages.dev') || currentHost.includes('transactlogs.pro')) {
+    console.log('🚀 Using Railway API:', 'https://logs-server-system-production.up.railway.app/api');
     return 'https://logs-server-system-production.up.railway.app/api';
   }
   
-  // Default to Railway backend
+  // If running on localhost, use local backend (or env var if set)
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    const localUrl = envApiUrl || 'http://127.0.0.1:8000/api';
+    console.log('💻 Using local API:', localUrl);
+    return localUrl;
+  }
+  
+  // Default to Railway backend for any other domain
+  console.log('🌐 Using Railway API (default):', 'https://logs-server-system-production.up.railway.app/api');
   return 'https://logs-server-system-production.up.railway.app/api';
 };
 
@@ -28,6 +27,8 @@ const api = axios.create({
   baseURL: getApiUrl(),
   withCredentials: true, // Important for CORS with credentials
 });
+
+console.log('✅ API initialized with baseURL:', api.defaults.baseURL);
 
 // Add request interceptor to include auth token
 api.interceptors.request.use(

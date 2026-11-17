@@ -4,25 +4,20 @@
  * @returns {string} API base URL
  */
 export const getApiUrl = () => {
-  // If VITE_API_URL is set, use it (for production builds)
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  // Auto-detect based on current domain
   const currentHost = window.location.hostname;
+  const envApiUrl = import.meta.env.VITE_API_URL;
   
-  // If running on localhost, use local backend
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return 'http://127.0.0.1:8000/api';
-  }
-  
-  // If running on Cloudflare Pages, use Railway backend
+  // If running on production domain (Cloudflare Pages), always use Railway backend
   if (currentHost.includes('pages.dev') || currentHost.includes('transactlogs.pro')) {
     return 'https://logs-server-system-production.up.railway.app/api';
   }
   
-  // Default to Railway backend
+  // If running on localhost, use local backend (or env var if set)
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return envApiUrl || 'http://127.0.0.1:8000/api';
+  }
+  
+  // Default to Railway backend for any other domain
   return 'https://logs-server-system-production.up.railway.app/api';
 };
 
