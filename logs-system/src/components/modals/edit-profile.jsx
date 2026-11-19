@@ -71,6 +71,19 @@ export default function EditProfileDialog({
     }
   }
 
+  function handleEmailChange(e) {
+    const { value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      email: value,
+    }));
+
+    // Clear error when user types
+    if (errors.email) {
+      setErrors({ ...errors, email: null });
+    }
+  }
+
   function handleBlur(field) {
     setTouched({ ...touched, [field]: true });
     validateField(field);
@@ -106,6 +119,14 @@ export default function EditProfileDialog({
           }
         }
         break;
+
+      case "email":
+        if (!form.email || form.email.trim() === "") {
+          fieldError = "Email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+          fieldError = "Invalid email format";
+        }
+        break;
     }
 
     if (fieldError) {
@@ -116,8 +137,8 @@ export default function EditProfileDialog({
   }
 
   async function handleSave() {
-    // Validate all name fields
-    const fieldsToValidate = ["firstname", "lastname"];
+    // Validate all name fields and email
+    const fieldsToValidate = ["firstname", "lastname", "email"];
     let isValid = true;
 
     fieldsToValidate.forEach((field) => {
@@ -131,6 +152,7 @@ export default function EditProfileDialog({
       firstname: true,
       lastname: true,
       middlename: true,
+      email: true,
     });
 
     if (!isValid) {
@@ -147,7 +169,7 @@ export default function EditProfileDialog({
 
       // Update local state with the response
       if (onSave) {
-        onSave(response.user);
+        onSave(response.user || response.staff);
       }
 
       toast.success("Profile updated successfully!");
@@ -194,16 +216,22 @@ export default function EditProfileDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Email</Label>
+            <Label>Email <span className="text-red-500">*</span></Label>
 
             <Input
               type="email"
               name="email"
               value={form.email}
-              onChange={handleChange}
-              readOnly
-              className="bg-gray-100 cursor-not-allowed"
+              onChange={handleEmailChange}
+              onBlur={() => handleBlur("email")}
+              className={touched.email && errors.email ? "border-red-500" : ""}
             />
+            {touched.email && errors.email && (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <XCircle size={12} />
+                {errors.email}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -271,6 +299,19 @@ export default function EditProfileDialog({
               className="bg-gray-100 cursor-not-allowed"
             />
           </div>
+
+          {form.role === 'staff' && (
+            <div className="space-y-2">
+              <Label>Status</Label>
+
+              <Input
+                name="status"
+                value={form.status || "Active"}
+                readOnly
+                className="bg-gray-100 cursor-not-allowed"
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter className="mt-8">

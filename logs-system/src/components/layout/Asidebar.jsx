@@ -44,19 +44,19 @@ const items = [
     icon: UserCircle,
     relatedRoutes: [],
   },
-
-  {
-    title: "Client",
-    url: "/manage-client",
-    icon: UserCheckIcon,
-    relatedRoutes: ["/Client-register", "/client-details"],
-  },
   {
     title: "Master list",
     url: "/master-list",
     icon: UserCheckIcon,
     relatedRoutes: ["/add-manual"],
   },
+  {
+    title: "Client",
+    url: "/manage-client",
+    icon: UserCheckIcon,
+    relatedRoutes: ["/Client-register", "/client-details"],
+  },
+
   {
     title: "Staff",
     url: "/manage-users",
