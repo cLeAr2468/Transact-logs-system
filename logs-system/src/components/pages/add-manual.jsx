@@ -64,7 +64,10 @@ function AddManual() {
     if (id === "student_id") {
       processedValue = formatStudentId(value);
     } else if (["fname", "mname", "lname"].includes(id)) {
-      processedValue = autoCapitalize(value);
+      // Remove any numbers and special characters except spaces, periods, and hyphens
+      processedValue = value.replace(/[^a-zA-Z\s.-]/g, '');
+      // Auto-capitalize
+      processedValue = autoCapitalize(processedValue);
     }
     
     setForm({
@@ -288,19 +291,21 @@ function AddManual() {
 
               {/* Middle Name */}
               <div className="space-y-2">
-                <Label htmlFor="mname">Middle Name (Optional)</Label>
+                <Label htmlFor="mname">Middle Name <span className="text-red-500">*</span></Label>
 
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
 
                   <Input
                     id="mname"
-                    placeholder="Enter Middle Name (Optional)"
+                    placeholder="Enter Middle Name"
                     value={form.mname}
                     onChange={handleChange}
                     className="pl-10"
+                    required
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">If no middle name, please enter "NA"</p>
               </div>
 
               {/* Last Name */}

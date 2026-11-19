@@ -13,6 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   User,
@@ -43,6 +50,7 @@ function AddStaff() {
     fname: "",
     mname: "",
     lname: "",
+    suffix: "",
     email: "",
     password: "",
   });
@@ -54,6 +62,9 @@ function AddStaff() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  // Suffix options
+  const suffixOptions = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
 
   // Password validation
   const passwordValidation = useMemo(() => {
@@ -227,6 +238,7 @@ function AddStaff() {
         fname: "",
         mname: "",
         lname: "",
+        suffix: "",
         email: "",
         password: "",
       });
@@ -352,7 +364,7 @@ function AddStaff() {
 
                     {/* Middle Name */}
                     <div className="space-y-2">
-                      <Label htmlFor="mname">Middle Name (Optional)</Label>
+                      <Label htmlFor="mname">Middle Name <span className="text-red-500">*</span></Label>
 
                       <div className="relative">
                         <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -365,6 +377,7 @@ function AddStaff() {
                           onBlur={() => handleBlur("mname")}
                           className={`pl-10 ${touched.mname && errors.mname ? "border-red-500" : ""}`}
                           autoComplete="additional-name"
+                          required
                         />
                       </div>
                       {touched.mname && errors.mname && (
@@ -373,7 +386,7 @@ function AddStaff() {
                           {errors.mname}
                         </p>
                       )}
-                      <p className="text-xs text-gray-500">Letters only, no numbers or special characters</p>
+                      <p className="text-xs text-muted-foreground">If no middle name, please enter "NA"</p>
                     </div>
 
                     {/* Last Name */}
@@ -401,6 +414,32 @@ function AddStaff() {
                         </p>
                       )}
                       <p className="text-xs text-gray-500">Letters only, no numbers or special characters</p>
+                    </div>
+
+                    {/* Suffix */}
+                    <div className="space-y-2">
+                      <Label htmlFor="suffix">Suffix (Optional)</Label>
+                      <Select
+                        value={form.suffix}
+                        onValueChange={(value) =>
+                          setForm({ ...form, suffix: value })
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <SelectValue placeholder="Select Suffix" />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {suffixOptions.map((suffix) => (
+                            <SelectItem key={suffix} value={suffix}>
+                              {suffix}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Email */}

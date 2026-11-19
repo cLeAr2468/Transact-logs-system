@@ -294,49 +294,58 @@ const Managestaff = () => {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          paginatedUsers.map((user) => (
-                            <TableRow key={user.id}>
-                              <TableCell className="font-medium">{user.staff_id}</TableCell>
-                              <TableCell className="font-medium">{`${user.fname} ${user.mname || ''} ${user.lname}`}</TableCell>
-                              <TableCell>{user.email}</TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={user.status === 'Active' ? 'default' : 'destructive'}
-                                  className={user.status === 'Active' ? 'bg-green-600' : ''}
-                                >
-                                  {user.status || 'Active'}
-                                </Badge>
-                              </TableCell>
+                          paginatedUsers.map((user) => {
+                            // Filter out N/A variations from middle name
+                            const naVariations = ['Na', 'na', 'NA', 'N A', 'n a', 'N a', 'n A'];
+                            const middleName = user.mname && !naVariations.includes(user.mname.trim()) 
+                              ? user.mname 
+                              : '';
+                            const displayName = `${user.fname} ${middleName} ${user.lname}`.replace(/\s+/g, ' ').trim();
                             
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={
-                                      user.status === 'Active'
-                                        ? 'text-red-600 hover:text-red-700 hover:bg-red-50'
-                                        : 'text-green-600 hover:text-green-700 hover:bg-green-50'
-                                    }
-                                    onClick={() =>
-                                      handleToggleStatus(
-                                        user.id,
-                                        user.status,
-                                        `${user.fname} ${user.lname}`
-                                      )
-                                    }
-                                    title={user.status === 'Active' ? 'Set Inactive' : 'Set Active'}
+                            return (
+                              <TableRow key={user.id}>
+                                <TableCell className="font-medium">{user.staff_id}</TableCell>
+                                <TableCell className="font-medium">{displayName}</TableCell>
+                                <TableCell>{user.email}</TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={user.status === 'Active' ? 'default' : 'destructive'}
+                                    className={user.status === 'Active' ? 'bg-green-600' : ''}
                                   >
-                                    {user.status === 'Active' ? (
-                                      <XCircle className="w-4 h-4" />
-                                    ) : (
-                                      <CheckCircle className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
+                                    {user.status || 'Active'}
+                                  </Badge>
+                                </TableCell>
+                              
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className={
+                                        user.status === 'Active'
+                                          ? 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                                          : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                                      }
+                                      onClick={() =>
+                                        handleToggleStatus(
+                                          user.id,
+                                          user.status,
+                                          `${user.fname} ${user.lname}`
+                                        )
+                                      }
+                                      title={user.status === 'Active' ? 'Set Inactive' : 'Set Active'}
+                                    >
+                                      {user.status === 'Active' ? (
+                                        <XCircle className="w-4 h-4" />
+                                      ) : (
+                                        <CheckCircle className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
                         )}
                       </TableBody>
                     </Table>
