@@ -1164,7 +1164,7 @@ export default function Reports() {
               {/* File Format */}
               <div className="space-y-2">
                 <Label>File Format</Label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setFileFormat('pdf')}
@@ -1174,10 +1174,11 @@ export default function Reports() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <FileText className={`w-6 h-6 ${fileFormat === 'pdf' ? 'text-[#15592F]' : 'text-red-500'}`} />
-                    <span className="text-sm font-medium">PDF</span>
+                    <FileText className={`w-6 h-6 ${fileFormat === 'pdf' ? 'text-[#15592F]' : 'text-gray-400'}`} />
+                    <span className={`text-sm font-medium ${fileFormat === 'pdf' ? 'text-[#15592F]' : 'text-gray-600'}`}>
+                      PDF Document
+                    </span>
                   </button>
-
                   <button
                     type="button"
                     onClick={() => setFileFormat('excel')}
@@ -1187,21 +1188,10 @@ export default function Reports() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <FileSpreadsheet className={`w-6 h-6 ${fileFormat === 'excel' ? 'text-[#15592F]' : 'text-green-600'}`} />
-                    <span className="text-sm font-medium">Excel</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setFileFormat('csv')}
-                    className={`flex flex-col items-center justify-center gap-2 p-4 border-2 rounded-lg transition-all ${
-                      fileFormat === 'csv'
-                        ? 'border-[#15592F] bg-green-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <FileSpreadsheet className={`w-6 h-6 ${fileFormat === 'csv' ? 'text-[#15592F]' : 'text-gray-600'}`} />
-                    <span className="text-sm font-medium">CSV</span>
+                    <FileSpreadsheet className={`w-6 h-6 ${fileFormat === 'excel' ? 'text-[#15592F]' : 'text-gray-400'}`} />
+                    <span className={`text-sm font-medium ${fileFormat === 'excel' ? 'text-[#15592F]' : 'text-gray-600'}`}>
+                      Excel
+                    </span>
                   </button>
                 </div>
               </div>

@@ -14,6 +14,7 @@ export const registerStaff = async (staffData) => {
       fname: staffData.fname,
       mname: staffData.mname,
       lname: staffData.lname,
+      suffix: staffData.suffix || '',
       email: staffData.email,
       password: staffData.password,
     });

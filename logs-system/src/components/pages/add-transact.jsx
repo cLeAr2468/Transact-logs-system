@@ -556,7 +556,13 @@ export default function TransactionForm() {
                           <div className="flex">
                             <span className="font-medium text-slate-600 w-32">Full Name:</span>
                             <span className="text-slate-800">
-                              {`${userData.fname} ${userData.mname ? userData.mname + ' ' : ''}${userData.lname}`}
+                              {(() => {
+                                const naVariations = ['Na', 'na', 'NA', 'N A', 'n a', 'N a', 'n A', 'N/A', 'n/a'];
+                                const mname = userData.mname && !naVariations.includes(userData.mname.trim()) 
+                                  ? userData.mname + ' ' 
+                                  : '';
+                                return `${userData.fname} ${mname}${userData.lname}`;
+                              })()}
                             </span>
                           </div>
                           <div className="flex">

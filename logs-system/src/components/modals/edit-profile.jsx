@@ -50,6 +50,9 @@ export default function EditProfileDialog({
   // Get the user ID (can be staff_id for staff or admin_id for admin)
   const userId = form.staff_id || form.admin_id || "";
 
+  // Suffix options for staff
+  const suffixOptions = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
+
   function handleChange(e) {
     const { name, value } = e.target;
 
@@ -253,7 +256,7 @@ export default function EditProfileDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Middle Name (Optional)</Label>
+            <Label>Middle Name</Label>
 
             <Input
               name="middlename"
@@ -288,6 +291,30 @@ export default function EditProfileDialog({
               </p>
             )}
           </div>
+
+          {form.role === 'staff' && (
+            <div className="space-y-2">
+              <Label>Suffix (Optional)</Label>
+              <Select
+                value={form.suffix || ""}
+                onValueChange={(value) =>
+                  setForm({ ...form, suffix: value === "" ? "" : value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Suffix" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {suffixOptions.map((suffix) => (
+                    <SelectItem key={suffix} value={suffix}>
+                      {suffix}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Role</Label>

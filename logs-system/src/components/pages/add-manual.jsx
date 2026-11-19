@@ -110,12 +110,15 @@ function AddManual() {
         break;
 
       case "mname":
-        if (form[field]) {
-          const validation = validateTextInput(form[field], {
+        // Frontend validation only - required
+        if (!form.mname || form.mname.trim() === "") {
+          error = "Middle name is required";
+        } else {
+          const validation = validateTextInput(form.mname, {
             minLength: 1,
             maxLength: 50,
             allowSpecialChars: false,
-            required: false,
+            required: true,
           });
           if (!validation.isValid) {
             error = validation.error;
@@ -147,7 +150,7 @@ function AddManual() {
   };
 
   const validateAllFields = () => {
-    const fields = ["student_id", "fname", "lname", "email", "course", "year_level"];
+    const fields = ["student_id", "fname", "mname", "lname", "email", "course", "year_level"];
     let isValid = true;
 
     fields.forEach((field) => {
@@ -159,6 +162,7 @@ function AddManual() {
     setTouched({
       student_id: true,
       fname: true,
+      mname: true,
       lname: true,
       email: true,
       course: true,
@@ -271,7 +275,7 @@ function AddManual() {
 
               {/* First Name */}
               <div className="space-y-2">
-                <Label htmlFor="fname">First Name</Label>
+                <Label htmlFor="fname">First Name <span className="text-red-500">*</span></Label>
 
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -281,10 +285,18 @@ function AddManual() {
                     placeholder="Enter First Name"
                     value={form.fname}
                     onChange={handleChange}
-                    className="pl-10"
+                    onBlur={() => handleBlur("fname")}
+                    className={`pl-10 ${touched.fname && errors.fname ? "border-red-500" : ""}`}
                     required
                   />
                 </div>
+                {touched.fname && errors.fname && (
+                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                    <XCircle size={12} />
+                    {errors.fname}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500">Letters only, no numbers or special characters</p>
               </div>
 
 
@@ -301,16 +313,23 @@ function AddManual() {
                     placeholder="Enter Middle Name"
                     value={form.mname}
                     onChange={handleChange}
-                    className="pl-10"
+                    onBlur={() => handleBlur("mname")}
+                    className={`pl-10 ${touched.mname && errors.mname ? "border-red-500" : ""}`}
                     required
                   />
                 </div>
+                {touched.mname && errors.mname && (
+                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                    <XCircle size={12} />
+                    {errors.mname}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">If no middle name, please enter "NA"</p>
               </div>
 
               {/* Last Name */}
               <div className="space-y-2">
-                <Label htmlFor="lname">Last Name</Label>
+                <Label htmlFor="lname">Last Name <span className="text-red-500">*</span></Label>
 
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -320,10 +339,18 @@ function AddManual() {
                     placeholder="Enter Last Name"
                     value={form.lname}
                     onChange={handleChange}
-                    className="pl-10"
+                    onBlur={() => handleBlur("lname")}
+                    className={`pl-10 ${touched.lname && errors.lname ? "border-red-500" : ""}`}
                     required
                   />
                 </div>
+                {touched.lname && errors.lname && (
+                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                    <XCircle size={12} />
+                    {errors.lname}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500">Letters only, no numbers or special characters</p>
               </div>
               {/* Email */}
               <div className="space-y-2">

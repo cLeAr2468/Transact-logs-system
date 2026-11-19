@@ -38,10 +38,16 @@ const items = [
     icon: LayoutDashboard,
     relatedRoutes: [],
   },
+  {
+    title: "Transaction",
+    url: "/transact",
+    icon: ArrowLeftRight,
+    relatedRoutes: ["/add-transact", "/transact-details"],
+  },
     {
-    title: "Profile",
-    url: "/profile",
-    icon: UserCircle,
+    title: "Manage Purpose",
+    url: "/manage-purpose",
+    icon: Target,
     relatedRoutes: [],
   },
   {
@@ -63,18 +69,7 @@ const items = [
     icon: Users,
     relatedRoutes: ["/add-staff"],
   },
-  {
-    title: "Manage Purpose",
-    url: "/manage-purpose",
-    icon: Target,
-    relatedRoutes: [],
-  },
-    {
-    title: "Transaction",
-    url: "/transact",
-    icon: ArrowLeftRight,
-    relatedRoutes: ["/add-transact", "/transact-details"],
-  },
+
   {
     title: "Reports",
     url: "/reports",
@@ -88,17 +83,23 @@ const items = [
     relatedRoutes: ["/add-announcement", "/announcement-history"],
   },
   {
-    title: "Activity Logs",
-    url: "/Activity",
-    icon: Activity,
-    relatedRoutes: [],
-  },
-  {
     title: "Notifications",
     url: "/notifications",
     icon: Bell,
     relatedRoutes: [],
     showBadge: true,
+  },
+  {
+    title: "Activity Logs",
+    url: "/Activity",
+    icon: Activity,
+    relatedRoutes: [],
+  },
+      {
+    title: "Profile",
+    url: "/profile",
+    icon: UserCircle,
+    relatedRoutes: [],
   },
 
 ];

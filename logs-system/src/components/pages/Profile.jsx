@@ -186,7 +186,20 @@ export default function ProfileDisplay() {
     
     const displayRole = user.role === 'admin' ? 'Administrator' : 'Staff';
     
-    console.log('🔍 Display values:', { displayId, displayRole, user });
+    // Filter out N/A variations from middle name
+    const naVariations = ['Na', 'na', 'NA', 'N A', 'n a', 'N a', 'n A', 'N/A', 'n/a'];
+    const displayMiddleName = user.middlename && !naVariations.includes(user.middlename.trim()) 
+        ? user.middlename 
+        : '';
+    
+    // Build full name
+    const nameParts = [user.firstname, displayMiddleName, user.lastname].filter(part => part && part.trim());
+    const fullName = nameParts.join(' ');
+    const displayFullName = user.suffix && user.suffix.trim() 
+        ? `${fullName} ${user.suffix}` 
+        : fullName;
+    
+    console.log('🔍 Display values:', { displayId, displayRole, displayFullName, middlename: user.middlename, displayMiddleName, user });
 
     return (
         <SidebarProvider>
@@ -217,7 +230,7 @@ export default function ProfileDisplay() {
                                             </Avatar>
 
                                             <h2 className="mt-4 text-2xl font-bold text-center">
-                                                {user.firstname} {user.middlename} {user.lastname}
+                                                {displayFullName}
                                             </h2>
 
                                             <Badge className="mt-3 bg-green-100 text-green-700">{user.status || 'Active'}</Badge>
@@ -368,7 +381,7 @@ export default function ProfileDisplay() {
                                         </Avatar>
 
                                         <h2 className="mt-4 text-xl font-bold text-center">
-                                            {user.firstname} {user.middlename} {user.lastname}
+                                            {displayFullName}
                                         </h2>
 
                                         <Badge className="mt-3 bg-green-100 text-green-700">{user.status || 'Active'}</Badge>

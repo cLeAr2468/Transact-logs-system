@@ -420,9 +420,9 @@ function AddStaff() {
                     <div className="space-y-2">
                       <Label htmlFor="suffix">Suffix (Optional)</Label>
                       <Select
-                        value={form.suffix}
+                        value={form.suffix || ""}
                         onValueChange={(value) =>
-                          setForm({ ...form, suffix: value })
+                          setForm({ ...form, suffix: value === "" ? "" : value })
                         }
                       >
                         <SelectTrigger className="w-full">

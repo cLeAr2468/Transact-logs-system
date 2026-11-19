@@ -300,7 +300,13 @@ const Managestaff = () => {
                             const middleName = user.mname && !naVariations.includes(user.mname.trim()) 
                               ? user.mname 
                               : '';
-                            const displayName = `${user.fname} ${middleName} ${user.lname}`.replace(/\s+/g, ' ').trim();
+                            
+                            // Build full name with suffix if present
+                            const nameParts = [user.fname, middleName, user.lname].filter(part => part && part.trim());
+                            const fullName = nameParts.join(' ');
+                            const displayName = user.suffix && user.suffix.trim() 
+                              ? `${fullName} ${user.suffix}` 
+                              : fullName;
                             
                             return (
                               <TableRow key={user.id}>
