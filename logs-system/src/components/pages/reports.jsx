@@ -281,12 +281,46 @@ export default function Reports() {
         return;
       }
 
+      // Build dynamic report description based on filters
+      let reportDescription = 'Transaction Report';
+      const filterParts = [];
+      
+      // Add status filter description
+      if (exportStatusFilter !== 'all') {
+        const statusLabel = exportStatusFilter.charAt(0).toUpperCase() + exportStatusFilter.slice(1);
+        filterParts.push(`Status: ${statusLabel}`);
+      } else {
+        filterParts.push('Status: All');
+      }
+      
+      // Add purpose filter description
+      if (exportPurposeFilter !== 'all') {
+        filterParts.push(`Purpose: ${exportPurposeFilter}`);
+      } else {
+        filterParts.push('Purpose: All');
+      }
+      
+      // Add sections included
+      const sections = [];
+      if (includeSummary) sections.push('Summary');
+      if (includeDetails) sections.push('Details');
+      if (includeFeedback) sections.push('Feedback');
+      
+      if (sections.length > 0) {
+        filterParts.push(`Includes: ${sections.join(', ')}`);
+      }
+      
+      // Combine all parts
+      if (filterParts.length > 0) {
+        reportDescription = `Transaction Report (${filterParts.join(' | ')})`;
+      }
+
       // Build query parameters
       const params = new URLSearchParams({
         format: fileFormat,
         start_date: startDate,
         end_date: endDate,
-        report_type: 'Transaction Report', // Generic report type
+        report_type: reportDescription, // Dynamic report description
         include_summary: includeSummary ? '1' : '0',
         include_details: includeDetails ? '1' : '0',
         include_feedback: includeFeedback ? '1' : '0',
